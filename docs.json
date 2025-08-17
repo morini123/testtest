@@ -51,6 +51,12 @@
         "tab": "API reference",
         "groups": [
           {
+            "group": "Users",
+            "openapi": {
+            "source": "/path/to/openapi-1.json",
+            "directory": "api-reference"
+          }
+        },
             "group": "API documentation",
             "pages": [
               "api-reference/introduction"
