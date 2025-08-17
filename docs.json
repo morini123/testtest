@@ -49,7 +49,6 @@
       },
       {
         "tab": "API reference",
-        "openapi": "https://github.com/morini123/testtest/blob/main/api-reference/unified_blockaid_openapi.yaml"
         "groups": [
           {
             "group": "API documentation",
