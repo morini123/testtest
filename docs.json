@@ -51,33 +51,29 @@
         "tab": "API reference",
         "groups": [
           {
-            "group": "Unified Blockaid API",
+            "group": "Endpoints",
             "openapi": {
               "source": "https://raw.githubusercontent.com/morini123/testtest/main/api-reference/unified_blockaid_openapi.yaml",
               "directory": "api-reference"
             }
           }
         ]
+      },
+      {
+        "tab": "Updates",
+        "groups": [
+          {
+            "group": "2025",
+            "pages": [
+              "ai-tools/cursor",
+              "ai-tools/claude-code",
+              "ai-tools/windsurf"
+            ]
+          }
+        ]
       }
     ],
     "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
     }
   },
   "logo": {
