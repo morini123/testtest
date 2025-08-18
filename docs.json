@@ -18,9 +18,13 @@
             "pages": [
               "index",
               "quickstart",
-              "development",
-              "erq4r",
-                "empty"
+              "development"
+            ]
+          },
+          {
+            "group": "empty",
+            "pages": [
+              "erq4r"
             ]
           },
           {
