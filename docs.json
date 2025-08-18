@@ -22,9 +22,14 @@
             ]
           },
           {
-            "group": "empty",
+            "group": "erq4r",
             "pages": [
-              "erq4r"
+              {
+                "page": "erq4r",
+                "subpages": [
+                  "empty"
+                ]
+              }
             ]
           },
           {
