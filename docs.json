@@ -56,15 +56,6 @@
               "source": "https://raw.githubusercontent.com/morini123/testtest/main/api-reference/unified_blockaid_openapi.yaml",
               "directory": "api-reference"
             }
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
           }
         ]
       }
