@@ -90,7 +90,7 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
+    "light": "https://github.com/morini123/testtest/blob/main/images/Blockaid%20Logo%20(2).png",
     "dark": "/logo/dark.svg"
   },
   "navbar": {
@@ -111,18 +111,8 @@
       "copy",
       "view",
       "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
     ]
   },
   "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
   }
 }
