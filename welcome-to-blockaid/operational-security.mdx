@@ -19,11 +19,11 @@ import MySnippet from '/snippets/divider.mdx';
 
 <MySnippet />
 
-# Operational Security Tools
+## Operational Security Tools
 
 Blockaid provides you with the following set of operation security tools:
 
-## Cosigner
+### Cosigner
 
 Cosigner is a security solution that enforces transaction policies at the multisig level.
 
@@ -31,7 +31,7 @@ It acts as an additional signer in your multisig wallet (e.g. Safe, Fireblocks) 
 
 Cosigner is built using standard multisig infrastructure—it is deployed as a regular Safe-compatible signer, and operates entirely within the native transaction and approval model of the chain. There is no proprietary execution environment or off-chain dependency for enforcement.
 
-## RPC Gateway
+### RPC Gateway
 
 The RPC Gateway security module integrates Blockaid’s detection and enforcement engines directly into the RPC transaction submission layer. By inserting validation at the eth\\\_sendRawTransaction call, the module enables real-time transaction inspection, validation, and intervention — before any malicious activity reaches the blockchain.
 
