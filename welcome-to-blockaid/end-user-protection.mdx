@@ -13,7 +13,9 @@ The solution is composed of three key layers:
 
 Let’s explore each layer in more detail.
 
-# API Request and Response
+<div class="divider"></div>
+
+## API Request and Response
 
 Wallet providers and chains can use Blockaid’s APIs to assess the validity and risk level of any transaction, token, or dApp. The API returns detailed insights to inform user-facing responses.
 
@@ -21,9 +23,8 @@ Wallet providers and chains can use Blockaid’s APIs to assess the validity and
 
 When using Blockaid’s transaction scanning APIs, the response may include one or both of the following:
 
-\* **Transaction Simulation** - A preview of what will happen if the transaction is signed. This includes expected changes in assets, currencies, amounts, and addresses.
-
-\* **Transaction Validation** - A security assessment of the transaction with a verdict (e.g. _benign_, _malicious_, _warning_), a classification (e.g. _Losing trade_, _Drainer contract_), and contextual features that highlight the roles of addresses, contracts, and other elements involved.
+- **Transaction Simulation** - A preview of what will happen if the transaction is signed. This includes expected changes in assets, currencies, amounts, and addresses.
+- **Transaction Validation** - A security assessment of the transaction with a verdict (e.g. _benign_, _malicious_, _warning_), a classification (e.g. _Losing trade_, _Drainer contract_), and contextual features that highlight the roles of addresses, contracts, and other elements involved.
 
 ### Token Scanning
 
@@ -33,21 +34,16 @@ Blockaid's token scanning provides a result of the token scan (benign, malicious
 
 When using dApp scanning API requests, you will receive a response including an indication whether the site is malicious or not, and if so, the site's \<Anchor label="attack types" target="\_blank" href="https://docs.blockaid.io/reference/dapp-attack-types"\\\>attack types\</Anchor\>. This is used by DEXs to filter malicious tokens from the UI.
 
-\> 📘 Learn More
+<Info>
+  **Learn More**
 
-\>
+  To learn more about Blockaid's End User Protection API offering, visit:
 
-\> To learn more about Blockaid's End User Protection API offering, visit:
+  - [Transaction scanning response reference](https://docs.blockaid.io/reference/tx-scan-response-reference#/)
+  - [Token scanning response reference](https://docs.blockaid.io/reference/token-scan-response-reference#/)
+  - [dApp scanning response reference](https://docs.blockaid.io/reference/dapp-attack-types#/)
+</Info>
 
-\>
-
-\> \* [Transaction scanning response reference](https://docs.blockaid.io/reference/tx-scan-response-reference#/)
-
-\> \* [Token scanning response reference](https://docs.blockaid.io/reference/token-scan-response-reference#/)
-
-\> \* [dApp scanning response reference](https://docs.blockaid.io/reference/dapp-attack-types#/)
-
-\*\*\*
 
 ## End User View
 
