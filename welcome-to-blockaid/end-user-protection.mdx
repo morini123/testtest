@@ -1,0 +1,102 @@
+---
+title: "End User Protection"
+description: "Learn how Blockaid empowers wallets and chains to protect their users in real time"
+---
+
+Blockaid’s End User Protection solution enables wallets, chains, and DEXs to scan transactions, tokens, or dApps in real time. This provides critical insights to users, helping them make informed decisions before proceeding.
+
+The solution is composed of three key layers:
+
+\* [API request and response](https://docs.blockaid.io/docs/end-user-protection#api-request-and-response)
+
+\* [End-user view](https://docs.blockaid.io/docs/end-user-protection#end-user-view)
+
+\* [Post-scan investigation](https://docs.blockaid.io/docs/end-user-protection#post-scan-investigation)
+
+Let’s explore each layer in more detail.
+
+\*\*\*
+
+## API Request and Response
+
+Wallet providers and chains can use Blockaid’s APIs to assess the validity and risk level of any transaction, token, or dApp. The API returns detailed insights to inform user-facing responses.
+
+### Transaction Scanning
+
+When using Blockaid’s transaction scanning APIs, the response may include one or both of the following:
+
+\* **Transaction Simulation** - A preview of what will happen if the transaction is signed. This includes expected changes in assets, currencies, amounts, and addresses.
+
+\* **Transaction Validation** - A security assessment of the transaction with a verdict (e.g. _benign_, _malicious_, _warning_), a classification (e.g. _Losing trade_, _Drainer contract_), and contextual features that highlight the roles of addresses, contracts, and other elements involved.
+
+### Token Scanning
+
+Blockaid's token scanning provides a result of the token scan (benign, malicious), a calculation of the token fees, token metadata, possible attack types, and features that provide extra context to the token.
+
+### dApp Scanning
+
+When using dApp scanning API requests, you will receive a response including an indication whether the site is malicious or not, and if so, the site's \<Anchor label="attack types" target="\_blank" href="https://docs.blockaid.io/reference/dapp-attack-types"\>attack types\</Anchor\>. This is used by DEXs to filter malicious tokens from the UI.
+
+\> 📘 Learn More
+
+\>
+
+\> To learn more about Blockaid's End User Protection API offering, visit:
+
+\>
+
+\> \* [Transaction scanning response reference](https://docs.blockaid.io/reference/tx-scan-response-reference#/)
+
+\> \* [Token scanning response reference](https://docs.blockaid.io/reference/token-scan-response-reference#/)
+
+\> \* [dApp scanning response reference](https://docs.blockaid.io/reference/dapp-attack-types#/)
+
+\*\*\*
+
+## End User View
+
+This layer describes how the results of a scan are presented to wallet and chain users.
+
+When a user initiates a transaction or interacts with a new token or dApp, the wallet or chain sends a scan request to Blockaid. The scan result is returned via API and rendered in the user interface.
+
+Here are a few examples:
+
+### Transaction Simulation
+
+A UI view showing the predicted effects of signing the transaction.
+
+\<Image align="center" border={false} caption="Example: A simulation displayed in the wallet interface" src="https://files.readme.io/16adcbdae31c4fe7e4368f3ee1813e30dc853786d6504a6b1cd7e3054df4380c-2025-07-22_08-14-38.png" width="400px" /\>
+
+### Transaction Validation
+
+A UI result indicating the security assessment of the transaction.
+
+\<Image align="center" border={false} caption="Example: A validation result warning of a drainer contract" src="https://files.readme.io/31d988249cc84137c4eaa34b01372ea75c39c075eb72241d7216ae91509e30ff-2025-07-22_10-26-50.png" width="220px" /\>
+
+### Token Validation
+
+If the token is flagged as malicious, users are shown a warning, along with relevant details provided by the API.
+
+\<Image align="center" border={false} caption="Example: A warning about a scam token" src="https://files.readme.io/82298915a61ddcfee578044fc57bc74bb8f0b25b4e467d6d1cae8dc9890193bb-2025-07-22_13-40-24.png" width="300px" /\>
+
+### dApp Validation
+
+When a user attempts to connect their wallet to a malicious dApp, they are alerted before any connection is established.
+
+\<Image align="center" border={false} caption="Example: A notice blocking connection to a phishing site." src="https://files.readme.io/b109873054d81404ec7e19577f6dc14b44ed85ddbcde88a520cf4fd60b878f83-2025-07-22_13-41-31.png" width="200px" /\>
+
+\*\*\*
+
+## Post-Scan Investigation
+
+All scans performed in your Blockaid instance are listed in the Scans page. You can filter the view to display only scans with a **Pre-signed** trigger to show only scans that were initiated by API. Now you can drill down into specific scans to investigate them further.
+
+This layer helps developers, security teams, or wallet providers perform follow-up analysis as needed.
+
+\![](https://files.readme.io/076648504d7e9bcb29c134478191534ee660cf8b4db9d511e6549b7be18c59aa-image.png)
+
+\> 📘 Learn More
+
+\>
+
+\> To learn more about investigating scans, visit this page.
