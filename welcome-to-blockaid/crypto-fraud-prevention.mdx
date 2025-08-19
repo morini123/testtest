@@ -1,5 +1,80 @@
 ---
-title: 'New file'
-description: 'Description of your new file.'
+title: "Crypto Fraud Prevention"
+description: "Use Blockaid to prevent and limit crypto fraud for your users"
 ---
 
+Blockaid’s Crypto Fraud Prevention service helps exchanges combat both **first-party fraud**—such as investment scams, impersonation schemes, and advance fee scams where users are tricked into voluntarily sending funds—and **third-party fraud**, including account takeovers via phishing, credential leaks, or malware.
+
+# About Crypto Fraud
+
+Attackers exploit users in various ways to drain their funds. We categorize user-related fraud into two categories: First-party fraud and Third-party fraud.
+
+## First Party Fraud
+
+These types of scams involve the user voluntarily sending funds to scammers. The scammers deceive the users in various ways usually by convincing the user that they will receive greater value by cooperating.
+
+- **Investment scams:** These scams deceive victims into believing they are investing in legitimate firms that promise unusually high returns. To create urgency and credibility, scammers often frame the opportunity as time-sensitive and display fabricated earnings from supposed past users. The schemes typically begin with a seemingly friendly interaction on social media—often staged as a “chance meeting.”
+
+  <img
+    src="/images/cryptofraud.png"
+    alt="Fraud conversation starting as a chance meeting"
+    title="Fraud conversation starting as a chance meeting"
+    style={{ width:"35%" }}
+  />
+
+  As trust builds, the conversation shifts toward an investment opportunity and eventually escalates to communication with fake “support staff” who guide the victim through transferring their funds. Victims usually start with a small deposit to test the service and are allowed to withdraw those initial returns, reinforcing the illusion of legitimacy. However, once a larger amount is invested, the funds are suddenly locked and become inaccessible—revealing the scam.
+
+  <img
+    src="/images/fraudhelp.png"
+    alt="Referring the user to a fraudulent help link"
+    title="Referring the user to a fraudulent help link"
+    style={{ width:"35%" }}
+  />
+- **Impersonation scams:** These scams involve a user sending funds to a service impersonating a well known organization. For example a website impersonating a common exchange like Coinbase or Binance.
+- **Advance Fee Scams:** Scams that involve paying an initial fee to later on receive a larger sum. The classic well-known example is the "beneficiary scam" where an unknown distant relative died and left their estate to the victim. To claim the funds the victim needs to only pay an initial processing fee. Afterwards the scammer keeps on asking for more and more fees until the victim realizes too late that they've been scammed.
+
+## Third Party Fraud
+
+**Account Takeovers:** Scams that involve the scammer receiving the victims credentials through various ways such as:
+
+- Finding other victim credentials in older password leaks
+- Stealing the victim cookies with malware
+- Phishing the victim to voluntarily send the credentials
+
+import MySnippet from '/snippets/divider.mdx';
+
+<MySnippet />
+
+# About Crypto Fraud Prevention
+
+## Fraud Detection Engine
+
+The solution offers a real-time API that monitors all deposits and withdrawals, assigning risk levels (Severe, High, Medium, Low) based on the strength of evidence for fraudulent activity.
+
+The fraud detection engine is powered by a multilayered strategy:
+
+1. **Scraping Fraud Infrastructure**
+
+   AI agents simulate user behavior to actively discover new scam websites and extract associated wallet addresses.
+2. **Victim Transaction Context**
+
+   By analyzing patterns in victim wallet behavior, Blockaid identifies new addresses associated with ongoing scam campaigns.
+3. **Blockaid Network Intelligence**
+
+   Integrating data from exchanges, wallets, and partners, Blockaid builds a shared defense layer, enabling real-time detection based on off-chain indicators.
+4. **Onchain Heuristics**
+
+   The system continuously analyzes blockchain data to identify emerging scam tactics and laundering behaviors, using behavioral fingerprints and flow-of-funds analytics.
+
+## API Endpoints
+
+The solution is comprised of the [**Scan Transaction**](**[**https://docs.blockaid.io/reference/scan-transaction-chain-agnostic-1#/)](https://docs.blockaid.io/reference/scan-transaction-chain-agnostic-1#/\\)\*\*) API endpoint designed to be applied at two critical interception points:
+
+- **Withdrawals** – stop pig‑butchering losses and other scams **before** funds leave your platform.
+- **Deposits** – freeze stolen funds **as they arrive** so there’s a chance to recover them for your users.
+
+In addition, you can use 3 additional API endpoints, used to complement the solution, provide you with enrichment data and help refine Blockaid's detection models and better protect your exchange:
+
+- [**Log account login**](**[**https://docs.blockaid.io/reference/log-account-login#/)](https://docs.blockaid.io/reference/log-account-login#/\\)\*\*) - Use this endpoint to log every time an account login event happens. This will be used later, if a fraud is detected, to identify its sources and behavior.
+- [**Modify account**](**[**https://docs.blockaid.io/reference/modify-account#/)](https://docs.blockaid.io/reference/modify-account#/\\)\*\*) - Use this endpoint to log every time an account login event happens. This will be used later, if a fraud is detected, to identify its sources and behavior.
+- [**Report fraud**](**[**https://docs.blockaid.io/reference/report-fraud#/)](https://docs.blockaid.io/reference/report-fraud#/\\)\*\*) -  Use the Report Fraud endpoint whenever you identify malicious activity to help improve Blockaid's detection models.
