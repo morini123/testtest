@@ -82,6 +82,7 @@
     "light": "/logo/Light.png",
     "dark": "/logo/Dark.png"
   },
+  "showLastUpdated": true,
   "navbar": {
     "links": [
       {
