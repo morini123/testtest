@@ -1,5 +1,38 @@
 ---
-title: 'New file'
-description: 'Description of your new file.'
+title: "Operational Security"
+description: "Manage crypto and Web3 compliance and policy"
 ---
 
+Blockaid provides a suite of real-time, in-flow inspection, validation, and enforcement tools that integrate seamlessly with your existing infrastructure and solutions. Instead of acting as passive monitors, these components actively interface with Blockaid’s detection infrastructure, enabling your organization to intervene directly within live user and system interactions.
+
+These tools integrate into your onchain products or infrastructure - whether wallets, exchanges, marketplaces, chain infra, or governance flows - and use Blockaid’s advanced threat intelligence and customizable policies to protect users from malicious, unsafe, or unwanted interactions.
+
+Each tool is an integration point between your stack and Blockaid’s detection engine. These points allow you to:
+
+- Inspect the interaction
+- Validate it against live threat intel and platform-managed rules
+- Enforce outcomes such as allow, block, notify etc.
+
+This model enables proactive, contextual protection without degrading performance or user experience.
+
+import MySnippet from '/snippets/divider.mdx';
+
+<MySnippet />
+
+# Operational Security Tools
+
+Blockaid provides you with the following set of operation security tools:
+
+## Cosigner
+
+Cosigner is a security solution that enforces transaction policies at the multisig level.
+
+It acts as an additional signer in your multisig wallet (e.g. Safe, Fireblocks) and only approves transactions that have been simulated and validated against your organization’s security and compliance policies. Each transaction is automatically analyzed using Blockaid’s threat detection engine and simulation tools.
+
+Cosigner is built using standard multisig infrastructure—it is deployed as a regular Safe-compatible signer, and operates entirely within the native transaction and approval model of the chain. There is no proprietary execution environment or off-chain dependency for enforcement.
+
+## RPC Gateway
+
+The RPC Gateway security module integrates Blockaid’s detection and enforcement engines directly into the RPC transaction submission layer. By inserting validation at the eth\\\_sendRawTransaction call, the module enables real-time transaction inspection, validation, and intervention — before any malicious activity reaches the blockchain.
+
+This approach allows organizations operating RPC gateways, relayers, or custom infrastructure to proactively block unsafe, malicious, or non-compliant transactions with minimal latency and no disruption to normal user flows.
