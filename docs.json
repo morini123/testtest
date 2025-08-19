@@ -14,11 +14,13 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "🚀 Welcome to Blockaid",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "welcome-to-blockaid/about-blockaid",
+              "welcome-to-blockaid/end-user-protection",
+              "welcome-to-blockaid/onchain-monitoring",
+              "welcome-to-blockaid/crypto-fraud-prevention",
+              "welcome-to-blockaid/operational-security"
             ]
           },
           {
