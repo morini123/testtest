@@ -35,7 +35,7 @@ Blockaid's token scanning provides a result of the token scan (benign, malicious
 
 ### dApp Scanning
 
-When using dApp scanning API requests, you will receive a response including an indication whether the site is malicious or not, and if so, the site's \<Anchor label="attack types" target="\_blank" href="https://docs.blockaid.io/reference/dapp-attack-types"\\\\\\\>attack types\</Anchor\>. This is used by DEXs to filter malicious tokens from the UI.
+When using dApp scanning API requests, you will receive a response including an indication whether the site is malicious or not, and if so, the site's \<Anchor label="attack types" target="\_blank" href="https://docs.blockaid.io/reference/dapp-attack-types"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\>attack types\</Anchor\>. This is used by DEXs to filter malicious tokens from the UI.
 
 <Info>
   **Learn More**
@@ -60,31 +60,47 @@ Here are a few examples:
 A UI view showing the predicted effects of signing the transaction.
 
 <img
-  src="/images/image.png"
-  alt="image.png"
+  src="/333.png"
+  alt="Example: A simulation displayed in the wallet interface"
   title="Example: A simulation displayed in the wallet interface"
-  style={{ width:"68%" }}
+  className="mr-auto"
+  style={{ width:"50%" }}
 />
 
 ### Transaction Validation
 
 A UI result indicating the security assessment of the transaction.
 
-\<Image align="center" border=false caption="Example: A validation result warning of a drainer contract" src="https://files.readme.io/31d988249cc84137c4eaa34b01372ea75c39c075eb72241d7216ae91509e30ff-2025-07-22_10-26-50.png" width="220px" /\>
+<img
+  src="/images/image.png"
+  alt="Example: A validation result warning of a drainer contract"
+  title="Example: A validation result warning of a drainer contract"
+  style={{ width:"31%" }}
+/>
 
 ### Token Validation
 
 If the token is flagged as malicious, users are shown a warning, along with relevant details provided by the API.
 
-\<Image align="center" border=false caption="Example: A warning about a scam token" src="https://files.readme.io/82298915a61ddcfee578044fc57bc74bb8f0b25b4e467d6d1cae8dc9890193bb-2025-07-22_13-40-24.png" width="300px" /\>
+<img
+  src="/exa"
+  alt="Example: A warning about a scam token"
+  title="Example: A warning about a scam token"
+  style={{ width:"35%" }}
+/>
 
 ### dApp Validation
 
 When a user attempts to connect their wallet to a malicious dApp, they are alerted before any connection is established.
 
-\<Image align="center" border=false caption="Example: A notice blocking connection to a phishing site." src="https://files.readme.io/b109873054d81404ec7e19577f6dc14b44ed85ddbcde88a520cf4fd60b878f83-2025-07-22_13-41-31.png" width="200px" /\>
+<img
+  src="/images/2025-07-22_13-41-31.png"
+  alt="Example: A notice blocking connection to a phishing site"
+  title="Example: A notice blocking connection to a phishing site"
+  style={{ width:"32%" }}
+/>
 
-\*\*\*
+<MySnippet />
 
 ## Post-Scan Investigation
 
@@ -92,10 +108,8 @@ All scans performed in your Blockaid instance are listed in the Scans page. You 
 
 This layer helps developers, security teams, or wallet providers perform follow-up analysis as needed.
 
-\!
+<Info>
+  **Learn More**
 
-\> 📘 Learn More
-
-\>
-
-\> To learn more about investigating scans, visit this page.
+   To learn more about investigating scans, visit this page.
+</Info>
