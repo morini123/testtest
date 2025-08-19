@@ -1,5 +1,71 @@
 ---
-title: 'New file'
-description: 'Description of your new file.'
+title: "Onchain Monitoring"
+description: "Monitor, investigate and manage your onchain assets"
 ---
 
+Blockaid enables users to seamlessly manage, monitor, and maintain their onchain assets—including wallets, tokens, contracts, vaults, and more. Through a straightforward asset onboarding process, you can ensure your entire onchain inventory is covered by Blockaid’s monitoring capabilities.
+
+Blockaid's Onchain Monitoring solution is built around four tightly integrated pillars:
+
+- **Monitoring**: Define and continuously observe your onchain and offchain Web3 assets - including contracts, wallets, dApps, tokens, and more. Blockaid simplifies inventory management and simulates all asset interactions for early threat surfacing.
+- **Detection**: Apply out-of-the-box or custom rules to identify suspicious behavior and active threats. Blockaid’s detection engine covers known attack patterns and lets teams tune logic to their environment - enabling both broad surveillance and scoped precision.
+- **Investigation**: Analyze incidents with context-rich, forensically complete data. From transaction flows and approval history to threat intelligence links, the investigation interface gives you a clear timeline and root-cause visibility.
+- **Response**: Trigger real-time mitigations through automated workflows. Responses range from alerting and offchain integrations to onchain actions like blocking transactions, revoking token approvals, unwinding positions, and pausing compromised contracts.
+
+Once your assets are onboarded, you’ll gain full visibility into their behavior. You’ll be able to view every scan initiated on your assets, receive notifications about suspicious activities and incidents, tailor detection policies via customizable rules, and much more.
+
+Each of these four pillars is represented in the product with specific tools and features, and together they form an elaborate workflow that covers your onchain assets monitoring process end-to-end.
+
+![Onboardassetstoinventory Pn](/images/Onboardassetstoinventory.png)
+
+import MySnippet from '/snippets/path/to/divider.mdx';
+
+<MySnippet />
+
+# Monitoring
+
+## Inventory Management
+
+Before Blockaid can monitor your assets, they need to be onboarded using either the **Inventory interface** or the **Inventory API**. You can onboard a wide range of asset types across multiple chains.
+
+Use the Inventory page or API endpoints to view, update, or remove assets as needed.
+
+![Inventory](/images/inventory.png)
+
+# Detection
+
+## Blockaid Detection
+
+Blockaid begins scanning your assets immediately after onboarding, using built-in detection rules to identify suspicious activity. These scans are logged in the **Scans** page, where each scan can be explored in detail for further investigation and context.
+
+![Scans Pn](/images/scans.png)
+
+## Custom Detection Rules
+
+In addition to Blockaid’s out-of-the-box (OOTB) detection rules, you can define and deploy your own custom detection rules to match your specific monitoring needs. These rules enhance your ability to detect threats by allowing you to set precise conditions that trigger incidents when met.
+
+You can select from a catalog of predefined custom rule templates and modify their parameters to fit your unique use case. Once configured, these rules will run continuously across your monitored assets, and any rule match will automatically generate an incident for further investigation.
+
+![Detectionrules Pn](/images/detectionrules.png)
+
+# Investigation
+
+## Incident Notification
+
+When Blockaid detects suspicious or malicious activity, it generates an Incident in the **Incidents** page. Each incident includes all relevant data and insights, allowing you to quickly understand the threat and take appropriate action.
+
+![Incidentnotification Pn](/images/incidentnotification.png)
+
+## Security Labels
+
+Security Labels are classifications applied to onchain and offchain entities to indicate their security relevance. They identify entities as either malicious or benign and are used to influence detection outcomes, incident severity, and enforcement decisions across the platform. Security Labels can be applied automatically by Blockaid or manually by users through the Labels page.
+
+![Securitylabels Pn](/images/securitylabels.png)
+
+# Response
+
+## Automated Response Actions
+
+Blockaid is built to integrate with different products to allow you to automate your response actions. This means that you can define what will happen when a specific incident occurs, both on Blockaid but also on other tools such as Slack, Telegram, or onchain.
+
+This process requires you to set up the initial integration on the **Administration** page, and later define specific rules on the **Workflows** page.
