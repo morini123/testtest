@@ -27,7 +27,7 @@
           {
             "group": "⚙️ Set Up Your Environment",
             "pages": [
-              "overview",
+              "setup-your-environment/overview",
               "setup-your-environment/manage-api-keys",
                 {
                   "group": "Configure Integrations",
