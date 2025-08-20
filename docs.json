@@ -28,9 +28,14 @@
             "group": "⚙️ Set Up Your Environment",
             "pages": [
               "setup-your-environment/manage-api-keys",
-              "setup-your-environment/configure-integrations/setup-notification-integrations",
+                {
+                  "group": "Configure Integrations",
+                  "pages": [
+                    "setup-your-environment/configure-integrations/setup-notification-integrations",
               "setup-your-environment/configure-integrations/setup-web-action-integrations",
-              "setup-your-environment/configure-integrations/SetUpIntegrationsForBlockaidSecurityModules",
+              "setup-your-environment/configure-integrations/SetUpIntegrationsForBlockaidSecurityModules"
+                  ]
+                },
               "setup-your-environment/set-up-reponse-wallets"
             ]
           },
