@@ -1,30 +1,12 @@
-// last-updated.js (place this file in your docs content folder so Mintlify loads it globally)
-
+// last-updated.js
 (function () {
-  // --- CHANGE THESE TWO ---
-  const repo = "your-org/your-repo";     // e.g. "blockaidco/docs"
-  const mdxRoot = "";                    // e.g. "" or "docs/" if your MDX live in /docs
+  const repo = "your-org/your-repo";   // e.g. "blockaidco/docs"
+  const mdxRoot = "";                  // prefix if your files live under "docs/"
 
-  // Try to infer the MDX path from the URL.
-  // /my-folder/my-article  -> my-folder/my-article.mdx
-  // /my-folder             -> my-folder/index.mdx
   function guessFilePath() {
-    let p = window.location.pathname.replace(/^\/|\/$/g, ""); // trim leading/trailing slash
-    if (!p) return mdxRoot + "index.mdx";
-    // If path ends with a slash or is a folder route, assume index.mdx
-    return mdxRoot + (p.endsWith("/") ? p + "index.mdx" : p + ".mdx");
-  }
-
-  function insertLastUpdated(text) {
-    // Put it at the end of the main content area if available, otherwise body
-    const content = document.querySelector('[data-identifier="content-area"], main, .mdx-content') || document.body;
-    const p = document.createElement("p");
-    p.id = "last-updated";
-    p.style.fontSize = "0.9em";
-    p.style.opacity = "0.75";
-    p.style.marginTop = "1rem";
-    p.textContent = text;
-    content.appendChild(p);
+    let path = window.location.pathname.replace(/^\/|\/$/g, ""); // trim slashes
+    if (!path) return mdxRoot + "index.mdx";
+    return mdxRoot + (path.endsWith("/") ? path + "index.mdx" : path + ".mdx");
   }
 
   async function showLastUpdated() {
@@ -34,15 +16,28 @@
     try {
       const res = await fetch(url);
       if (!res.ok) return;
-      const data = await res.json();
-      if (!Array.isArray(data) || !data.length) return;
+      const commits = await res.json();
+      if (!commits.length) return;
 
-      const iso = data[0].commit.committer.date; // or author.date
-      const d = new Date(iso);
-      const formatted = d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-      insertLastUpdated(`Last updated: ${formatted}`);
-    } catch (_) {
-      /* ignore */
+      const iso = commits[0].commit.committer.date;
+      const date = new Date(iso).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+
+      const el = document.createElement("p");
+      el.id = "last-updated";
+      el.style.fontSize = "0.9em";
+      el.style.opacity = "0.7";
+      el.style.marginTop = "1rem";
+      el.textContent = `Last updated: ${date}`;
+
+      // inject at bottom of content
+      const container = document.querySelector("main") || document.body;
+      container.appendChild(el);
+    } catch (e) {
+      console.warn("Could not fetch last updated date", e);
     }
   }
 
