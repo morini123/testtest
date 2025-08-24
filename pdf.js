@@ -1,11 +1,11 @@
-// Mintlify — Contextual Menu → Export to PDF (FULL, robust sidebar)
-// Paste this entire block in Settings → Custom CSS & JS → Custom JavaScript (no <script> tags)
-
+// Mintlify — Export to PDF (reads routes from /docs.json; full modal + SPA safe)
 (function () {
-  // ========= helpers =========
+  // ========= tiny helpers =========
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const slug = (s='') => s.trim().toLowerCase().replace(/[^\w\-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+  const sameOrigin = (u) => { try { return new URL(u, location.origin).origin === location.origin; } catch { return false; } };
+  const toPath = (u) => { try { return new URL(u, location.origin).pathname; } catch { return null; } };
 
   function findArticle(root = document) {
     return (
@@ -16,7 +16,6 @@
       root.body || root
     );
   }
-
   function loadHtml2Pdf() {
     return new Promise((resolve, reject) => {
       if (window.html2pdf) return resolve();
@@ -32,7 +31,6 @@
   // ========= modal (full) =========
   const STYLE_ID = 'pdfx-styles';
   const OVERLAY_ID = 'pdfx-overlay';
-
   const FULL_STYLE = `
     #${OVERLAY_ID}{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);z-index:999999;display:flex;align-items:center;justify-content:center}
     #${OVERLAY_ID}[hidden]{display:none}
@@ -65,7 +63,6 @@
     .pdfx-article-path{opacity:.55;font-size:12px}
     @media print { .html2pdf__page-break{break-after:page} }
   `;
-
   const FULL_OVERLAY_INNER = `
     <div class="pdfx-modal" role="dialog" aria-modal="true" aria-label="Export articles">
       <div class="pdfx-header">
@@ -104,7 +101,7 @@
                 <option value="0.8">Small file</option>
               </select>
             </div>
-            <p class="pdfx-note">Pages are compiled in the order they appear in the left sidebar. Use search and the chips to select quickly.</p>
+            <p class="pdfx-note">Pages come from <code>/docs.json</code>. You can also add the current page and visible section.</p>
           </div>
           <div class="pdfx-actions">
             <button class="pdfx-btn pdfx-cancel">Cancel</button>
@@ -114,88 +111,113 @@
       </div>
     </div>
   `;
-
   function ensureModal() {
-    // styles (replace/ensure)
     let style = document.getElementById(STYLE_ID);
     if (!style) { style = document.createElement('style'); style.id = STYLE_ID; document.head.appendChild(style); }
     style.textContent = FULL_STYLE;
-
-    // overlay (replace/ensure)
     let overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) { overlay = document.createElement('div'); overlay.id = OVERLAY_ID; overlay.hidden = true; document.body.appendChild(overlay); }
     overlay.innerHTML = FULL_OVERLAY_INNER;
   }
-
   function openModal() {
     ensureModal();
-    const ov = document.getElementById(OVERLAY_ID);
-    ov.hidden = false;
-
-    // Build after sidebar is ready (handles SPA mounts)
-    const attemptBuild = () => {
-      buildList();
-      const has = (window.__PDFX_ITEMS__ || []).length > 0;
-      if (!has) {
-        let tries = 0;
-        const id = setInterval(() => {
-          buildList();
-          tries++;
-          if ((window.__PDFX_ITEMS__ || []).length > 0 || tries > 10) clearInterval(id);
-        }, 150);
-      }
-    };
-    if (document.querySelector('aside')) attemptBuild();
-    else {
-      const mo = new MutationObserver((_, obs) => {
-        if (document.querySelector('aside')) { obs.disconnect(); attemptBuild(); }
-      });
-      mo.observe(document.body, { childList: true, subtree: true });
-      setTimeout(attemptBuild, 300);
-    }
+    $('#'+OVERLAY_ID).hidden = false;
+    buildList(); // builds from manifest (with fallback)
   }
-  function closeModal() { const ov = document.getElementById(OVERLAY_ID); if (ov) ov.hidden = true; }
+  function closeModal() { const ov = $('#'+OVERLAY_ID); if (ov) ov.hidden = true; }
 
-  // ========= sidebar → items (robust) =========
-  function readSidebar() {
+  // ========= routes from /docs.json =========
+  let ROUTES_CACHE = null;
+
+  async function loadRoutesFromDocsJson() {
+    if (ROUTES_CACHE) return ROUTES_CACHE;
+
+    // try /docs.json (primary), then /mint.json (older naming) as fallback
+    const candidates = ['/docs.json', '/mint.json'];
+    let json = null;
+    for (const p of candidates) {
+      try {
+        const res = await fetch(p, { credentials: 'same-origin' });
+        if (res.ok) { json = await res.json(); break; }
+      } catch {}
+    }
+    const out = [];
+    const seen = new Set();
+
+    function push(title, href) {
+      if (!href || !sameOrigin(href)) return;
+      const path = toPath(href);
+      if (!path || seen.has(path)) return;
+      seen.add(path);
+      out.push({ title: (title || path).trim(), path });
+    }
+
+    function walk(node, inheritedTitle) {
+      if (!node || typeof node !== 'object') return;
+
+      // common shapes:
+      // { title, href } | { name, link } | { pages: [...] } | { group, pages } | { sections: [...] }
+      if (typeof node.href === 'string') push(node.title || node.name || inheritedTitle, node.href);
+      if (typeof node.link === 'string') push(node.title || node.name || inheritedTitle, node.link);
+      if (typeof node.path === 'string') push(node.title || node.name || inheritedTitle, node.path);
+
+      // Recurse arrays on common keys or any array value
+      const arrayishKeys = ['pages','items','children','sections','navigation','links','routes'];
+      for (const key of Object.keys(node)) {
+        const val = node[key];
+        if (Array.isArray(val)) {
+          val.forEach(child => walk(child, node.title || node.name || inheritedTitle));
+        } else if (arrayishKeys.includes(key) && typeof val === 'object') {
+          // just in case some themes put objects under these keys
+          walk(val, node.title || node.name || inheritedTitle);
+        }
+      }
+    }
+
+    if (json) walk(json, '');
+    ROUTES_CACHE = out;
+    return out;
+  }
+
+  // ========= fallback reader (visible sidebar) =========
+  function readSidebarFallback() {
     const containers = Array.from(document.querySelectorAll(
       'aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'
     ));
     const anchors = [];
     containers.forEach(c => anchors.push(...c.querySelectorAll('a[href]')));
-
     const seen = new Set();
     const items = [];
-
     anchors.forEach(a => {
       const raw = a.getAttribute('href') || '';
       if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('javascript:')) return;
-
-      let url;
-      try { url = new URL(raw, location.origin); } catch { return; }
-      if (url.origin !== location.origin) return;
-
-      const pathname = url.pathname;
-      if (!pathname || seen.has(pathname)) return;
-      seen.add(pathname);
-
-      const title = (a.textContent || '').trim() || pathname.split('/').filter(Boolean).pop() || pathname;
-      items.push({ title, path: pathname });
+      if (!sameOrigin(raw)) return;
+      const path = toPath(raw); if (!path || seen.has(path)) return;
+      seen.add(path);
+      const title = (a.textContent || '').trim() || path.split('/').filter(Boolean).pop() || path;
+      items.push({ title, path });
     });
-
     return items;
   }
 
-  function buildList() {
+  // ========= build list (manifest + fallback + current page) =========
+  async function buildList() {
     const list = $('.pdfx-list'); if (!list) return;
-    const items = readSidebar();
-    window.__PDFX_ITEMS__ = items;
 
-    if (!items.length) {
-      list.innerHTML = `<div style="opacity:.65;padding:12px;">No sidebar articles found. Use “Select current page” or navigate the sidebar, then try again.</div>`;
-      const count = $('.pdfx-count'); if (count) count.textContent = '0 article(s) selected';
-      return;
-    }
+    let items = await loadRoutesFromDocsJson();
+    if (!items || !items.length) items = readSidebarFallback();
+
+    // Always include current page
+    const herePath = location.pathname;
+    const hereTitle = ($('h1')?.textContent || document.title || herePath).trim();
+    if (!items.some(i => i.path === herePath)) items.unshift({ title: hereTitle, path: herePath });
+
+    // de-dupe and sort by path (optional)
+    const seen = new Set();
+    items = items.filter(i => { if (seen.has(i.path)) return false; seen.add(i.path); return true; })
+                 .sort((a,b) => a.path.localeCompare(b.path));
+
+    window.__PDFX_ITEMS__ = items;
 
     list.innerHTML = items.map(it => `
       <label class="pdfx-row">
@@ -204,6 +226,7 @@
         <span class="pdfx-path">${it.path}</span>
       </label>
     `).join('');
+
     const count = $('.pdfx-count'); if (count) count.textContent = '0 article(s) selected';
   }
 
@@ -233,7 +256,6 @@
     const quality = parseFloat($('.pdfx-quality').value || '0.98');
 
     const wrap = document.createElement('div'); wrap.className = 'pdfx-wrap';
-
     const btn = $('.pdfx-export'); const label = btn?.textContent || 'Export PDF';
     if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
 
@@ -241,18 +263,13 @@
       for (let i = 0; i < selected.length; i++) {
         const { title, path } = selected[i];
         const section = document.createElement('section'); section.className = 'pdfx-article';
-
         const header = document.createElement('header'); header.className = 'pdfx-article-header';
         header.innerHTML = `<h1 class="pdfx-article-title">${title}</h1><div class="pdfx-article-path">${location.origin}${path}</div>`;
         section.appendChild(header);
         section.appendChild(await fetchArticle(path));
         wrap.appendChild(section);
-
-        if (i < selected.length - 1) {
-          const br = document.createElement('div'); br.className = 'html2pdf__page-break'; wrap.appendChild(br);
-        }
+        if (i < selected.length - 1) wrap.appendChild(Object.assign(document.createElement('div'), { className: 'html2pdf__page-break' }));
       }
-
       const fname = `blockaid-docs_${slug(selected[0].title)}${selected.length>1?`-and-${selected.length-1}-more`:''}.pdf`;
       const opts = {
         margin: [10, 12, 14, 12],
@@ -262,7 +279,6 @@
         jsPDF: { unit: 'mm', format, orientation },
         pagebreak: { mode: ['css', 'legacy'] }
       };
-
       await window.html2pdf().set(opts).from(wrap).save();
       closeModal();
     } catch (err) {
@@ -273,7 +289,7 @@
     }
   }
 
-  // ========= triggers + SPA handling =========
+  // ========= triggers + SPA safety =========
   function checkTriggerFromUrl() {
     try {
       const u = new URL(location.href);
@@ -287,36 +303,28 @@
     } catch {}
     return false;
   }
-
-  // Poll URL to catch SPA nav
   let lastHref = location.href;
   setInterval(() => {
     if (location.href !== lastHref) {
       lastHref = location.href;
       checkTriggerFromUrl();
-      const ov = document.getElementById(OVERLAY_ID);
+      const ov = $('#'+OVERLAY_ID);
       if (ov && !ov.hidden) buildList();
     }
   }, 200);
-
   window.addEventListener('hashchange', checkTriggerFromUrl);
   window.addEventListener('popstate', checkTriggerFromUrl);
 
-  // Intercept contextual item clicks even if rendered in a portal
   function bindContextualClicks(root = document) {
     root.querySelectorAll('a[href="#export-pdf"], a[href*="?export=pdf"]').forEach(a => {
-      if (a.__pdfxBound) return;
-      a.__pdfxBound = true;
+      if (a.__pdfxBound) return; a.__pdfxBound = true;
       a.addEventListener('click', (e) => {
         e.preventDefault();
-        if (location.hash !== '#export-pdf') {
-          history.pushState(null, '', location.pathname + location.search + '#export-pdf');
-        }
+        if (location.hash !== '#export-pdf') history.pushState(null, '', location.pathname + location.search + '#export-pdf');
         openModal();
       }, true);
     });
   }
-
   const mo = new MutationObserver(muts => {
     muts.forEach(m => {
       if (m.type === 'childList') m.addedNodes.forEach(n => { if (n.nodeType === 1) bindContextualClicks(n); });
@@ -325,29 +333,34 @@
   });
   mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
 
-  // ========= modal events (delegated) =========
+  // ========= delegated modal events =========
   document.addEventListener('click', async (e) => {
-    if (e.target.matches(`#${OVERLAY_ID}`)) closeModal();
+    if (e.target.matches('#'+OVERLAY_ID)) closeModal();
     if (e.target.matches('.pdfx-close, .pdfx-cancel')) closeModal();
 
     if (e.target.matches('[data-select-current]')) {
-      ensureModal();
       const here = location.pathname;
+      // if current page isn't in the list yet, add it quickly
+      if (!__PDFX_ITEMS__ || !__PDFX_ITEMS__.some(i => i.path === here)) {
+        const hereTitle = ($('h1')?.textContent || document.title || here).trim();
+        const row = document.createElement('label');
+        row.className = 'pdfx-row';
+        row.innerHTML = `
+          <input type="checkbox" class="pdfx-item" data-path="${here}" data-title="${hereTitle.replace(/"/g,'&quot;')}" />
+          <span class="pdfx-title-txt">${hereTitle}</span>
+          <span class="pdfx-path">${here}</span>`;
+        $('.pdfx-list')?.prepend(row);
+        window.__PDFX_ITEMS__ = [{ title: hereTitle, path: here }, ...(window.__PDFX_ITEMS__||[])];
+      }
       $$('.pdfx-item').forEach(cb => cb.checked = (cb.dataset.path === here));
       updateCount();
     }
     if (e.target.matches('[data-select-visible]')) {
-      ensureModal();
       $$('.pdfx-row').forEach(row => { if (!row.hidden) row.querySelector('.pdfx-item').checked = true; });
       updateCount();
     }
-    if (e.target.matches('.pdfx-export')) {
-      e.preventDefault();
-      ensureModal();
-      await doExport();
-    }
+    if (e.target.matches('.pdfx-export')) { e.preventDefault(); await doExport(); }
   });
-
   document.addEventListener('input', (e) => {
     if (e.target.matches('.pdfx-search')) {
       const q = e.target.value.trim().toLowerCase();
