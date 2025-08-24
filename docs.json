@@ -114,7 +114,7 @@
         "title": "Export to PDF",
         "description": "Download one or many articles as a PDF",
         "icon": "download",
-        "href": "/?export=pdf"
+        "href": "#export-pdf"
       }
     ]
   },
