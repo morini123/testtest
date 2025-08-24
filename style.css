@@ -4,3 +4,8 @@
   margin: 32px 0;
   width: 100%;
 }
+
+#last-updated {
+  font-size: 0.85rem;
+  color: #666;
+}
