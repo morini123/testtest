@@ -4,3 +4,30 @@
   margin: 32px 0;
   width: 100%;
 }
+
+/* Mintlify: Download PDF button styles */
+.download-pdf-button {
+  cursor: pointer;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border, rgba(0,0,0,0.12));
+  background: var(--button-bg, transparent);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.download-pdf-button:hover { background: rgba(127,127,127,0.08); }
+
+/* Floating fallback (if nav not found) */
+.download-pdf-float {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+}
+
+/* Optional: force page breaks in PDFs where needed */
+@media print {
+  .html2pdf__page-break { break-after: page; }
+}
+
