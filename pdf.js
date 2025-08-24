@@ -1,6 +1,8 @@
-// Export to PDF — Full Modal (force-replace any old simple modal)
+// Mintlify — Contextual Menu → Export to PDF (FULL, robust sidebar)
+// Paste this entire block in Settings → Custom CSS & JS → Custom JavaScript (no <script> tags)
+
 (function () {
-  // --- tiny helpers ---
+  // ========= helpers =========
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const slug = (s='') => s.trim().toLowerCase().replace(/[^\w\-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
@@ -27,9 +29,9 @@
     });
   }
 
-  // --- FULL modal template ---
+  // ========= modal (full) =========
   const STYLE_ID = 'pdfx-styles';
-  const OVERLAY_ID = 'pdfx-overlay'; // keep same id; we will REPLACE its contents if it exists
+  const OVERLAY_ID = 'pdfx-overlay';
 
   const FULL_STYLE = `
     #${OVERLAY_ID}{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);z-index:999999;display:flex;align-items:center;justify-content:center}
@@ -113,76 +115,104 @@
     </div>
   `;
 
-  // Replace or create the overlay + styles
   function ensureModal() {
-    // Styles: replace any old minimal styles
+    // styles (replace/ensure)
     let style = document.getElementById(STYLE_ID);
-    if (!style) {
-      style = document.createElement('style');
-      style.id = STYLE_ID;
-      document.head.appendChild(style);
-    }
+    if (!style) { style = document.createElement('style'); style.id = STYLE_ID; document.head.appendChild(style); }
     style.textContent = FULL_STYLE;
 
-    // Overlay: if exists (from simple modal), overwrite its innerHTML
+    // overlay (replace/ensure)
     let overlay = document.getElementById(OVERLAY_ID);
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = OVERLAY_ID;
-      overlay.hidden = true;
-      document.body.appendChild(overlay);
-    }
+    if (!overlay) { overlay = document.createElement('div'); overlay.id = OVERLAY_ID; overlay.hidden = true; document.body.appendChild(overlay); }
     overlay.innerHTML = FULL_OVERLAY_INNER;
   }
 
   function openModal() {
     ensureModal();
-    document.getElementById(OVERLAY_ID).hidden = false;
-    buildList();
-  }
-  function closeModal() {
     const ov = document.getElementById(OVERLAY_ID);
-    if (ov) ov.hidden = true;
-  }
+    ov.hidden = false;
 
-  // --- sidebar → list
-  function readSidebar() {
-    const links = $$('aside a[href^="/"]:not([href="#"])');
-    const seen = new Set();
-    const out = [];
-    for (const a of links) {
-      try {
-        const u = new URL(a.getAttribute('href'), location.origin);
-        if (seen.has(u.pathname)) continue;
-        seen.add(u.pathname);
-        const title = (a.textContent || '').trim() || u.pathname.split('/').filter(Boolean).pop();
-        out.push({ title, path: u.pathname });
-      } catch {}
+    // Build after sidebar is ready (handles SPA mounts)
+    const attemptBuild = () => {
+      buildList();
+      const has = (window.__PDFX_ITEMS__ || []).length > 0;
+      if (!has) {
+        let tries = 0;
+        const id = setInterval(() => {
+          buildList();
+          tries++;
+          if ((window.__PDFX_ITEMS__ || []).length > 0 || tries > 10) clearInterval(id);
+        }, 150);
+      }
+    };
+    if (document.querySelector('aside')) attemptBuild();
+    else {
+      const mo = new MutationObserver((_, obs) => {
+        if (document.querySelector('aside')) { obs.disconnect(); attemptBuild(); }
+      });
+      mo.observe(document.body, { childList: true, subtree: true });
+      setTimeout(attemptBuild, 300);
     }
-    return out;
+  }
+  function closeModal() { const ov = document.getElementById(OVERLAY_ID); if (ov) ov.hidden = true; }
+
+  // ========= sidebar → items (robust) =========
+  function readSidebar() {
+    const containers = Array.from(document.querySelectorAll(
+      'aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'
+    ));
+    const anchors = [];
+    containers.forEach(c => anchors.push(...c.querySelectorAll('a[href]')));
+
+    const seen = new Set();
+    const items = [];
+
+    anchors.forEach(a => {
+      const raw = a.getAttribute('href') || '';
+      if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('javascript:')) return;
+
+      let url;
+      try { url = new URL(raw, location.origin); } catch { return; }
+      if (url.origin !== location.origin) return;
+
+      const pathname = url.pathname;
+      if (!pathname || seen.has(pathname)) return;
+      seen.add(pathname);
+
+      const title = (a.textContent || '').trim() || pathname.split('/').filter(Boolean).pop() || pathname;
+      items.push({ title, path: pathname });
+    });
+
+    return items;
   }
 
-  let cachedItems = [];
   function buildList() {
-    cachedItems = readSidebar();
-    const list = $('.pdfx-list');
-    if (!list) return;
-    list.innerHTML = cachedItems.map(it => `
+    const list = $('.pdfx-list'); if (!list) return;
+    const items = readSidebar();
+    window.__PDFX_ITEMS__ = items;
+
+    if (!items.length) {
+      list.innerHTML = `<div style="opacity:.65;padding:12px;">No sidebar articles found. Use “Select current page” or navigate the sidebar, then try again.</div>`;
+      const count = $('.pdfx-count'); if (count) count.textContent = '0 article(s) selected';
+      return;
+    }
+
+    list.innerHTML = items.map(it => `
       <label class="pdfx-row">
         <input type="checkbox" class="pdfx-item" data-path="${it.path}" data-title="${it.title.replace(/"/g,'&quot;')}" />
         <span class="pdfx-title-txt">${it.title}</span>
         <span class="pdfx-path">${it.path}</span>
       </label>
     `).join('');
-    updateCount();
-  }
-  function updateCount() {
-    const n = $$('.pdfx-item:checked').length;
-    const el = $('.pdfx-count');
-    if (el) el.textContent = `${n} article(s) selected`;
+    const count = $('.pdfx-count'); if (count) count.textContent = '0 article(s) selected';
   }
 
-  // --- fetch → compile → export
+  function updateCount() {
+    const n = $$('.pdfx-item:checked').length;
+    const el = $('.pdfx-count'); if (el) el.textContent = `${n} article(s) selected`;
+  }
+
+  // ========= fetch → compile → export =========
   async function fetchArticle(pathname) {
     const res = await fetch(pathname, { credentials: 'same-origin' });
     const html = await res.text();
@@ -202,33 +232,24 @@
     const [format, orientation] = ($('.pdfx-paper').value || 'a4|portrait').split('|');
     const quality = parseFloat($('.pdfx-quality').value || '0.98');
 
-    const wrap = document.createElement('div');
-    wrap.className = 'pdfx-wrap';
+    const wrap = document.createElement('div'); wrap.className = 'pdfx-wrap';
 
-    const exportBtn = $('.pdfx-export');
-    const prevLabel = exportBtn?.textContent || 'Export PDF';
-    if (exportBtn) { exportBtn.disabled = true; exportBtn.textContent = 'Exporting…'; }
+    const btn = $('.pdfx-export'); const label = btn?.textContent || 'Export PDF';
+    if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
 
     try {
       for (let i = 0; i < selected.length; i++) {
         const { title, path } = selected[i];
-        const section = document.createElement('section');
-        section.className = 'pdfx-article';
+        const section = document.createElement('section'); section.className = 'pdfx-article';
 
-        const header = document.createElement('header');
-        header.className = 'pdfx-article-header';
-        header.innerHTML = `<h1 class="pdfx-article-title">${title}</h1>
-                            <div class="pdfx-article-path">${location.origin}${path}</div>`;
+        const header = document.createElement('header'); header.className = 'pdfx-article-header';
+        header.innerHTML = `<h1 class="pdfx-article-title">${title}</h1><div class="pdfx-article-path">${location.origin}${path}</div>`;
         section.appendChild(header);
-
-        const body = await fetchArticle(path);
-        section.appendChild(body);
+        section.appendChild(await fetchArticle(path));
         wrap.appendChild(section);
 
         if (i < selected.length - 1) {
-          const br = document.createElement('div');
-          br.className = 'html2pdf__page-break';
-          wrap.appendChild(br);
+          const br = document.createElement('div'); br.className = 'html2pdf__page-break'; wrap.appendChild(br);
         }
       }
 
@@ -238,7 +259,7 @@
         filename: fname,
         image: { type: 'jpeg', quality },
         html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: format, orientation: orientation },
+        jsPDF: { unit: 'mm', format, orientation },
         pagebreak: { mode: ['css', 'legacy'] }
       };
 
@@ -248,11 +269,11 @@
       console.error('PDF export failed:', err);
       alert('Export failed: ' + (err?.message || err));
     } finally {
-      if (exportBtn) { exportBtn.disabled = false; exportBtn.textContent = prevLabel; }
+      if (btn) { btn.disabled = false; btn.textContent = label; }
     }
   }
 
-  // --- triggers (hash/query) + click interception + SPA watcher
+  // ========= triggers + SPA handling =========
   function checkTriggerFromUrl() {
     try {
       const u = new URL(location.href);
@@ -267,12 +288,12 @@
     return false;
   }
 
+  // Poll URL to catch SPA nav
   let lastHref = location.href;
   setInterval(() => {
     if (location.href !== lastHref) {
       lastHref = location.href;
       checkTriggerFromUrl();
-      // If modal is open and nav changed, refresh list
       const ov = document.getElementById(OVERLAY_ID);
       if (ov && !ov.hidden) buildList();
     }
@@ -281,9 +302,9 @@
   window.addEventListener('hashchange', checkTriggerFromUrl);
   window.addEventListener('popstate', checkTriggerFromUrl);
 
+  // Intercept contextual item clicks even if rendered in a portal
   function bindContextualClicks(root = document) {
-    const anchors = root.querySelectorAll('a[href="#export-pdf"], a[href*="?export=pdf"]');
-    anchors.forEach(a => {
+    root.querySelectorAll('a[href="#export-pdf"], a[href*="?export=pdf"]').forEach(a => {
       if (a.__pdfxBound) return;
       a.__pdfxBound = true;
       a.addEventListener('click', (e) => {
@@ -295,194 +316,64 @@
       }, true);
     });
   }
-  const mo = new MutationObserver((muts) => {
-    for (const m of muts) {
-      if (m.type === 'childList') {
-        m.addedNodes.forEach(n => { if (n.nodeType === 1) bindContextualClicks(n); });
-      } else if (m.type === 'attributes' && m.target.nodeType === 1) {
-        bindContextualClicks(m.target);
-      }
-    }
+
+  const mo = new MutationObserver(muts => {
+    muts.forEach(m => {
+      if (m.type === 'childList') m.addedNodes.forEach(n => { if (n.nodeType === 1) bindContextualClicks(n); });
+      if (m.type === 'attributes' && m.target.nodeType === 1) bindContextualClicks(m.target);
+    });
   });
   mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
 
-  // --- modal events (delegated)
-  function attachModalEvents() {
-    document.addEventListener('click', async (e) => {
-      // Close actions
-      if (e.target.matches(`#${OVERLAY_ID}`)) closeModal();
-      if (e.target.matches('.pdfx-close, .pdfx-cancel')) closeModal();
+  // ========= modal events (delegated) =========
+  document.addEventListener('click', async (e) => {
+    if (e.target.matches(`#${OVERLAY_ID}`)) closeModal();
+    if (e.target.matches('.pdfx-close, .pdfx-cancel')) closeModal();
 
-      // Chips
-      if (e.target.matches('[data-select-current]')) {
-        ensureModal(); // make sure full modal HTML is present
-        const here = location.pathname;
-        $$('.pdfx-item').forEach(cb => cb.checked = (cb.dataset.path === here));
-        updateCount();
-      }
-      if (e.target.matches('[data-select-visible]')) {
-        ensureModal();
-        $$('.pdfx-row').forEach(row => {
-          if (!row.hidden) row.querySelector('.pdfx-item').checked = true;
-        });
-        updateCount();
-      }
+    if (e.target.matches('[data-select-current]')) {
+      ensureModal();
+      const here = location.pathname;
+      $$('.pdfx-item').forEach(cb => cb.checked = (cb.dataset.path === here));
+      updateCount();
+    }
+    if (e.target.matches('[data-select-visible]')) {
+      ensureModal();
+      $$('.pdfx-row').forEach(row => { if (!row.hidden) row.querySelector('.pdfx-item').checked = true; });
+      updateCount();
+    }
+    if (e.target.matches('.pdfx-export')) {
+      e.preventDefault();
+      ensureModal();
+      await doExport();
+    }
+  });
 
-      // Export
-      if (e.target.matches('.pdfx-export')) {
-        e.preventDefault();
-        ensureModal();
-        await doExport();
-      }
-    });
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('.pdfx-search')) {
+      const q = e.target.value.trim().toLowerCase();
+      $$('.pdfx-row').forEach(row => {
+        const t = row.querySelector('.pdfx-title-txt').textContent.toLowerCase();
+        const p = row.querySelector('.pdfx-path').textContent.toLowerCase();
+        row.hidden = !(t.includes(q) || p.includes(q));
+      });
+    }
+    if (e.target.matches('#pdfx-select-all')) {
+      const checked = e.target.checked;
+      $$('.pdfx-item:not(:disabled)').forEach(cb => (cb.checked = checked));
+      updateCount();
+    }
+    if (e.target.matches('.pdfx-item')) updateCount();
+  });
 
-    document.addEventListener('input', (e) => {
-      if (e.target.matches('.pdfx-search')) {
-        const q = e.target.value.trim().toLowerCase();
-        $$('.pdfx-row').forEach(row => {
-          const t = row.querySelector('.pdfx-title-txt').textContent.toLowerCase();
-          const p = row.querySelector('.pdfx-path').textContent.toLowerCase();
-          row.hidden = !(t.includes(q) || p.includes(q));
-        });
-      }
-      if (e.target.matches('#pdfx-select-all')) {
-        const checked = e.target.checked;
-        $$('.pdfx-item:not(:disabled)').forEach(cb => (cb.checked = checked));
-        updateCount();
-      }
-      if (e.target.matches('.pdfx-item')) updateCount();
-    });
-  }
-
-  // --- boot
+  // ========= boot =========
   function ready(fn){
     (document.readyState === 'complete' || document.readyState === 'interactive')
       ? fn()
       : document.addEventListener('DOMContentLoaded', fn, { once: true });
   }
   ready(() => {
-    ensureModal();          // create/replace modal structure
-    attachModalEvents();    // bind delegated handlers once
+    ensureModal();
     bindContextualClicks(document);
-    checkTriggerFromUrl();  // open if URL already has trigger
+    checkTriggerFromUrl();
   });
 })();
-
-// 1) Robust sidebar reader: grabs absolute + relative links, filters to same-origin
-function readSidebar() {
-  // Be generous with selectors across Mintlify themes:
-  // - left <aside>
-  // - any nav in aside
-  // - scroll-area viewports some themes use
-  const containers = Array.from(document.querySelectorAll(
-    'aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'
-  ));
-
-  const anchors = [];
-  containers.forEach(c => anchors.push(...c.querySelectorAll('a[href]')));
-
-  const seen = new Set();
-  const items = [];
-
-  anchors.forEach(a => {
-    const raw = a.getAttribute('href') || '';
-    // Skip hash-only, mailto, javascript:, and external http(s) to other origins
-    if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('javascript:')) return;
-
-    // Normalize to URL using the current origin (handles relative like "welcome-to-blockaid/about-blockaid")
-    let url;
-    try {
-      url = new URL(raw, location.origin);
-    } catch { return; }
-
-    // Keep only same-origin, path-only docs (ignore query/fragment variations)
-    if (url.origin !== location.origin) return;
-
-    const pathname = url.pathname;
-    if (!pathname || seen.has(pathname)) return;
-    seen.add(pathname);
-
-    // Derive a title from the anchor text, fallback to last segment
-    const title = (a.textContent || '').trim() || pathname.split('/').filter(Boolean).pop() || pathname;
-
-    // Exclude top-level section links that don’t point to a real page if needed (optional)
-    // if (a.getAttribute('aria-disabled') === 'true') return;
-
-    items.push({ title, path: pathname });
-  });
-
-  return items;
-}
-
-// 2) Rebuild list UI (unchanged API)
-function buildList() {
-  const list = document.querySelector('.pdfx-list');
-  if (!list) return;
-
-  const items = readSidebar();
-  // Keep a global if you rely on it elsewhere
-  window.__PDFX_ITEMS__ = items;
-
-  if (!items.length) {
-    list.innerHTML = `
-      <div style="opacity:.65;padding:12px;">
-        No sidebar articles found. Try the chips above:
-        <strong>“Select current page”</strong> or use search after navigating the sidebar.
-      </div>`;
-    const count = document.querySelector('.pdfx-count');
-    if (count) count.textContent = '0 article(s) selected';
-    return;
-  }
-
-  list.innerHTML = items.map(it => `
-    <label class="pdfx-row">
-      <input type="checkbox" class="pdfx-item" data-path="${it.path}" data-title="${it.title.replace(/"/g,'&quot;')}" />
-      <span class="pdfx-title-txt">${it.title}</span>
-      <span class="pdfx-path">${it.path}</span>
-    </label>
-  `).join('');
-
-  // Update count after rendering
-  const count = document.querySelector('.pdfx-count');
-  if (count) count.textContent = '0 article(s) selected';
-}
-
-// 3) When opening the modal, wait for the sidebar to exist, then build
-const _openModalOrig = typeof openModal === 'function' ? openModal : null;
-window.openModal = function openModal() {
-  // Ensure modal exists and show
-  const ensureModal = (typeof window.ensureModal === 'function') ? window.ensureModal : null;
-  if (ensureModal) ensureModal();
-  const ov = document.getElementById('pdfx-overlay');
-  if (ov) ov.hidden = false;
-
-  // If the sidebar might render a moment later (SPA nav), wait briefly and then build
-  const tryBuild = () => {
-    buildList();
-    // If list is still empty, retry a couple times quickly
-    const hasItems = (window.__PDFX_ITEMS__ || []).length > 0;
-    if (!hasItems) {
-      let attempts = 0;
-      const id = setInterval(() => {
-        buildList();
-        attempts++;
-        if ((window.__PDFX_ITEMS__ || []).length > 0 || attempts > 10) clearInterval(id);
-      }, 150);
-    }
-  };
-
-  // If aside exists now, build immediately; otherwise, wait for it
-  if (document.querySelector('aside')) {
-    tryBuild();
-  } else {
-    const mo = new MutationObserver((_muts, obs) => {
-      if (document.querySelector('aside')) {
-        obs.disconnect();
-        tryBuild();
-      }
-    });
-    mo.observe(document.body, { childList: true, subtree: true });
-    // Failsafe build after a short delay too
-    setTimeout(tryBuild, 300);
-  }
-};
