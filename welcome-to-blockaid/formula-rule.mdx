@@ -21,7 +21,7 @@ import MySnippet from '/snippets/divider.mdx';
 
 <MySnippet />
 
-# Create a Formula Rule
+## Create a Formula Rule
 
 To create a Formula Detection Rule, follow these steps:
 
@@ -129,7 +129,7 @@ To create a Formula Detection Rule, follow these steps:
 
 <MySnippet />
 
-# Formula Syntax
+## Formula Syntax
 
 You can use the following syntax in your formula:
 
@@ -200,9 +200,9 @@ You can use the following syntax in your formula:
   ```
 </Accordion>
 
-# Real-World Examples
+## Real-World Examples
 
-## Token Supply Threshold
+### Token Supply Threshold
 
 Alert when an ERC-20 token's `totalSupply()` exceeds a threshold.
 
@@ -210,7 +210,7 @@ Alert when an ERC-20 token's `totalSupply()` exceeds a threshold.
 A > 1_000_000_000_000_000_000_000
 ```
 
-## Wallet Balance Surge
+### Wallet Balance Surge
 
 Alert when the wallet has \>10k tokens AND its balance increased by 50% in the last 30 minutes.
 
@@ -220,7 +220,7 @@ A > 10_000 and A increased_by 50% in 30m
 
 A: `balanceOf(wallet)` for the token
 
-## Pool Reserve Imbalance
+### Pool Reserve Imbalance
 
 Alert when either reserve is more than 20% larger than the other (checks both directions).
 
@@ -239,7 +239,7 @@ Alternative (range check):
 
 This triggers when the ratio leaves a healthy band of 0.83–1.2.
 
-## Liquidity Floor
+### Liquidity Floor
 
 Alert when pool liquidity drops below a floor.
 
@@ -249,7 +249,7 @@ A < 5_000_000
 
 A: Sui pool object `liquidity` field
 
-## Reserve Utilization
+### Reserve Utilization
 
 Alert when utilization exceeds 90%.
 
@@ -260,9 +260,9 @@ A / B > 0.9
 - A: Lending pool `totalBorrows()` (or equivalent borrowed amount)
 - B: Lending pool `totalSupply()` (or equivalent supplied amount)
 
-# Best Practices
+## Best Practices
 
-## Working with Time Periods
+### Working with Time Periods
 
 When using time-based operators like `increased_by`, you need to specify a time period:
 
@@ -308,7 +308,7 @@ volume increased_by 2x in 2h
   Time-based changes apply to a single metric only. Do not reference another metric as the change value.
 </Info>
 
-## Tips for Success
+### Tips for Success
 
 <Card title="Start Simple">
   Begin with basic conditions and add complexity gradually:
@@ -332,7 +332,7 @@ volume increased_by 2x in 2h
   ```
 </Card>
 
-## Common Issues & Solutions
+### Common Issues & Solutions
 
 <Accordion title="❌  Unknown metric: X" iconType="regular">
   **Problem**: You're referencing a metric that doesn't exist.
