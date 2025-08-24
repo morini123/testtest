@@ -26,12 +26,7 @@ import MySnippet from '/snippets/divider.mdx';
 To create a Formula Detection Rule, follow these steps:
 
 <Accordion title="Step 1: Create a New Rule">
-  ## Step 1: Create a New Rule
-
   1. On the Blockaid platform, navigate to **Detection Rules** and then click **Add Detection Rule**.
-
-     \<Image align="center" src="https://files.readme.io/4b57c1a8dfad075c6a938226668c2febf8c58e5aee710215d93efb2b771fcafb-image.png" /\>
-
      The Add Custom Detection Rule window opens.
   2. From the **Choose Detection Logic** section, select the **Formula Rule** logic and click **Next**.
   3. Under the **Configure Rule** section, complete the fields as follows:
@@ -52,7 +47,7 @@ To create a Formula Detection Rule, follow these steps:
   - **Read Object (Sui)** - Read a numeric value from a Sui object. This is useful for reading counters and balances stored as Sui object fields.
 
   <Warning>
-    **Note**\
+    **Note**
     The contract (for Contract Call type) or Sui object (for Object Read type) must already exist in your Inventory as an asset before you can configure and save the metric.
   </Warning>
   **To define metrics:**
@@ -64,9 +59,9 @@ To create a Formula Detection Rule, follow these steps:
 
        If you're selecting an existing metric, skip to the Create Formula section.
      </Tip>
-     2. Under the **Configure Metric**, fill in the following:
-        1. **Metric Name** - Enter a descriptive name that will help you easily identify the metric in the metrics list.
-        2. **Metric Type** - Select the type of metric (Contract Call or Read Object).
+  2. Under the **Configure Metric**, fill in the following:
+     1. **Metric Name** - Enter a descriptive name that will help you easily identify the metric in the metrics list.
+     2. **Metric Type** - Select the type of metric (Contract Call or Read Object).
      3. Continue based on the selected type:
 
         <Tabs>
@@ -79,7 +74,6 @@ To create a Formula Detection Rule, follow these steps:
 
                <Warning>
                  **Note**
-
                  If the Functions list is empty, the contract you've selected doesn't include functions that return numeric values. To continue, select a different contract.
                </Warning>
           </Tab>
@@ -89,7 +83,7 @@ To create a Formula Detection Rule, follow these steps:
             2. **Field** - The numeric field to extract. Only numeric fields are selectable.
           </Tab>
         </Tabs>
-        4. Click **Test Metric** to validate the metric's configuration.
-        5. Once the test passed successfully, click **Save Metric**.
-        6. Check that your metrics are collecting data correctly and review their values.
+     4. Click **Test Metric** to validate the metric's configuration.
+     5. Once the test passed successfully, click **Save Metric**.
+     6. Check that your metrics are collecting data correctly and review their values.
 </Accordion>
