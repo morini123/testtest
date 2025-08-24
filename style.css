@@ -5,29 +5,34 @@
   width: 100%;
 }
 
-/* Mintlify: Download PDF button styles */
-.download-pdf-button {
-  cursor: pointer;
-  padding: 0.5rem 0.8rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border, rgba(0,0,0,0.12));
-  background: var(--button-bg, transparent);
-  font-size: 0.9rem;
-  line-height: 1;
-}
-.download-pdf-button:hover { background: rgba(127,127,127,0.08); }
+/* Overlay + modal */
+.pdfx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);z-index:9999;display:block}
+.pdfx-overlay[hidden]{display:none}
+.pdfx-modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(920px,92vw);max-height:80vh;background:#fff;border-radius:12px;box-shadow:0 16px 60px rgba(0,0,0,.25);overflow:hidden}
+.pdfx-close{position:absolute;right:10px;top:10px;border:0;background:transparent;font-size:18px;cursor:pointer}
+.pdfx-grid{display:grid;grid-template-columns: 1fr 1fr;gap:0;border-top:1px solid rgba(0,0,0,.06)}
+.pdfx-left{padding:14px;border-right:1px solid rgba(0,0,0,.06);display:flex;flex-direction:column;min-height:380px}
+.pdfx-right{padding:14px;display:flex;flex-direction:column;justify-content:space-between}
+.pdfx-search-wrap{padding:4px 4px 10px 4px}
+.pdfx-search{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(0,0,0,.12)}
+.pdfx-list{overflow:auto;border:1px solid rgba(0,0,0,.06);border-radius:8px;padding:8px;background:#fafafa}
+.pdfx-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px}
+.pdfx-row:hover{background:#fff}
+.pdfx-title{font-weight:500}
+.pdfx-path{opacity:.6;font-size:12px}
+.pdfx-footer-left{display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-size:12px}
+.pdfx-check{display:flex;gap:6px;align-items:center}
+.pdfx-opts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pdfx-label{font-size:12px;opacity:.7}
+.pdfx-actions{display:flex;justify-content:flex-end;gap:8px}
+.pdfx-actions .pdfx-cancel,
+.pdfx-actions .pdfx-export{padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.12);cursor:pointer;background:#fff}
+.pdfx-actions .pdfx-export{background:#e84e2c;color:#fff;border-color:#e84e2c}
+.pdfx-article-header{border-bottom:1px solid rgba(0,0,0,.08);padding-bottom:10px;margin-bottom:12px}
+.pdfx-article-title{margin:0;font-size:20px}
+.pdfx-article-path{opacity:.55;font-size:12px}
 
-/* Floating fallback (if nav not found) */
-.download-pdf-float {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 9999;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-}
-
-/* Optional: force page breaks in PDFs where needed */
+/* Ensure page breaks between selected articles */
 @media print {
   .html2pdf__page-break { break-after: page; }
 }
-
