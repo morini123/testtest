@@ -367,3 +367,122 @@
     checkTriggerFromUrl();  // open if URL already has trigger
   });
 })();
+
+// 1) Robust sidebar reader: grabs absolute + relative links, filters to same-origin
+function readSidebar() {
+  // Be generous with selectors across Mintlify themes:
+  // - left <aside>
+  // - any nav in aside
+  // - scroll-area viewports some themes use
+  const containers = Array.from(document.querySelectorAll(
+    'aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'
+  ));
+
+  const anchors = [];
+  containers.forEach(c => anchors.push(...c.querySelectorAll('a[href]')));
+
+  const seen = new Set();
+  const items = [];
+
+  anchors.forEach(a => {
+    const raw = a.getAttribute('href') || '';
+    // Skip hash-only, mailto, javascript:, and external http(s) to other origins
+    if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('javascript:')) return;
+
+    // Normalize to URL using the current origin (handles relative like "welcome-to-blockaid/about-blockaid")
+    let url;
+    try {
+      url = new URL(raw, location.origin);
+    } catch { return; }
+
+    // Keep only same-origin, path-only docs (ignore query/fragment variations)
+    if (url.origin !== location.origin) return;
+
+    const pathname = url.pathname;
+    if (!pathname || seen.has(pathname)) return;
+    seen.add(pathname);
+
+    // Derive a title from the anchor text, fallback to last segment
+    const title = (a.textContent || '').trim() || pathname.split('/').filter(Boolean).pop() || pathname;
+
+    // Exclude top-level section links that don’t point to a real page if needed (optional)
+    // if (a.getAttribute('aria-disabled') === 'true') return;
+
+    items.push({ title, path: pathname });
+  });
+
+  return items;
+}
+
+// 2) Rebuild list UI (unchanged API)
+function buildList() {
+  const list = document.querySelector('.pdfx-list');
+  if (!list) return;
+
+  const items = readSidebar();
+  // Keep a global if you rely on it elsewhere
+  window.__PDFX_ITEMS__ = items;
+
+  if (!items.length) {
+    list.innerHTML = `
+      <div style="opacity:.65;padding:12px;">
+        No sidebar articles found. Try the chips above:
+        <strong>“Select current page”</strong> or use search after navigating the sidebar.
+      </div>`;
+    const count = document.querySelector('.pdfx-count');
+    if (count) count.textContent = '0 article(s) selected';
+    return;
+  }
+
+  list.innerHTML = items.map(it => `
+    <label class="pdfx-row">
+      <input type="checkbox" class="pdfx-item" data-path="${it.path}" data-title="${it.title.replace(/"/g,'&quot;')}" />
+      <span class="pdfx-title-txt">${it.title}</span>
+      <span class="pdfx-path">${it.path}</span>
+    </label>
+  `).join('');
+
+  // Update count after rendering
+  const count = document.querySelector('.pdfx-count');
+  if (count) count.textContent = '0 article(s) selected';
+}
+
+// 3) When opening the modal, wait for the sidebar to exist, then build
+const _openModalOrig = typeof openModal === 'function' ? openModal : null;
+window.openModal = function openModal() {
+  // Ensure modal exists and show
+  const ensureModal = (typeof window.ensureModal === 'function') ? window.ensureModal : null;
+  if (ensureModal) ensureModal();
+  const ov = document.getElementById('pdfx-overlay');
+  if (ov) ov.hidden = false;
+
+  // If the sidebar might render a moment later (SPA nav), wait briefly and then build
+  const tryBuild = () => {
+    buildList();
+    // If list is still empty, retry a couple times quickly
+    const hasItems = (window.__PDFX_ITEMS__ || []).length > 0;
+    if (!hasItems) {
+      let attempts = 0;
+      const id = setInterval(() => {
+        buildList();
+        attempts++;
+        if ((window.__PDFX_ITEMS__ || []).length > 0 || attempts > 10) clearInterval(id);
+      }, 150);
+    }
+  };
+
+  // If aside exists now, build immediately; otherwise, wait for it
+  if (document.querySelector('aside')) {
+    tryBuild();
+  } else {
+    const mo = new MutationObserver((_muts, obs) => {
+      if (document.querySelector('aside')) {
+        obs.disconnect();
+        tryBuild();
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    // Failsafe build after a short delay too
+    setTimeout(tryBuild, 300);
+  }
+};
