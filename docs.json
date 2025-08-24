@@ -109,7 +109,13 @@
     "options": [
       "copy",
       "view",
-      "chatgpt"
+      "chatgpt",
+      {
+        "title": "Export to PDF",
+        "description": "Download one or many articles as a PDF",
+        "icon": "download",
+        "href": "#export-pdf"
+      }
     ]
   },
   "footer": {
