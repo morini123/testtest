@@ -86,4 +86,284 @@ To create a Formula Detection Rule, follow these steps:
      4. Click **Test Metric** to validate the metric's configuration.
      5. Once the test passed successfully, click **Save Metric**.
      6. Check that your metrics are collecting data correctly and review their values.
+     7. Click the Sigma symbol to choose how to process metric data over time periods:
+        - **Sum**: Add up all values in the time period
+        - **Average**: Calculate the average value
+        - **Minimum**: Use the lowest value in the period
+        - **Maximum**: Use the highest value in the period
+
+  <Tip>
+    Tip
+
+    - You can add more metrics to the rule by clicking **\+ Add Another Metric** and repeating the process.
+    - You can edit a saved metric by selecting it from the list and clicking the cogwheel icon.
+  </Tip>
+</Accordion>
+
+<Accordion title="Step 3: Create a Formula">
+  Write the mathematical expression that combines your metrics to detect the conditions you care about. in this step, the previously created metrics are mapped to letters (A, B, C...) for concise expressions.
+
+  In the formula input field, you'll write expressions using:
+
+  - **Letters (A, B, C, etc.)** to represent your metrics
+  - **Operators** to combine and compare them
+  - **Numbers** for thresholds and calculations
+
+  **Example**: `A > 1000` means "trigger when metric A is greater than 1000"
+
+  <Tip>
+    **Tip**
+
+    Click on any point on the metric chart to copy its exact value. You can paste that value into the formula input to quickly set a realistic threshold (e.g., `A > 574000000000000`).
+  </Tip>
+  **To create a formula:**
+
+  1. In the **fx** field, write a mathematical expression using the metrics configured earlier. You can use the syntax specified below.
+  2. From the alert severity dropdown, select the severity of the incident that will be created when the rule is activated:
+     - **Critical**: Urgent issues requiring immediate attention
+     - **High**: Important issues that need prompt response
+     - **Medium**: Notable issues that should be addressed
+     - **Low**: Informational alerts for awareness
+  3. Click **Save Rule**.
+</Accordion>
+
+<MySnippet />
+
+# Formula Syntax
+
+You can use the following syntax in your formula:
+
+<Accordion title="Basic Math">
+  | Operator | Meaning        | Example        |
+  | -------- | -------------- | -------------- |
+  | `+`      | Addition       | `A + B > 100`  |
+  | `-`      | Subtraction    | `A - B < 50`   |
+  | `*`      | Multiplication | `A * 2 > B`    |
+  | `/`      | Division       | `A / B > 1.5`  |
+  | `^`      | Power          | `A ^ 2 > 1000` |
+</Accordion>
+
+<Accordion title="Comparisons">
+  | Operator | Meaning               | Example    |
+  | -------- | --------------------- | ---------- |
+  | `>`      | Greater than          | `A > 1000` |
+  | `<`      | Less than             | `A < 500`  |
+  | `>=`     | Greater than or equal | `A >= 100` |
+  | `<=`     | Less than or equal    | `A <= 200` |
+  | `==`     | Equal to              | `A == 0`   |
+  | `!=`     | Not equal to          | `A != 100` |
+</Accordion>
+
+<Accordion title="Combining Conditions">
+  | Operator | Meaning            | Example              |
+  | -------- | ------------------ | -------------------- |
+  | `and`    | Both must be true  | `A > 100 and B < 50` |
+  | `or`     | Either can be true | `A > 1000 or B == 0` |
+</Accordion>
+
+<Accordion title="Time-Based Changes">
+  Time-based change operators apply to a single metric at a time. Do not combine two metrics inside the same change operation. Use parentheses when mixing with other operators for clarity.
+
+  | Operator           | Meaning         | Example                          |
+  | ------------------ | --------------- | -------------------------------- |
+  | `increased_by`     | Value went up   | `(A increased_by 10% in 1h)`     |
+  | `decreased_by`     | Value went down | `(A decreased_by 50 in 30m)`     |
+  | `net_increased_by` | Net change up   | `(A net_increased_by 2x in 24h)` |
+  | `net_decreased_by` | Net change down | `(A net_decreased_by 25% in 2h)` |
+
+  The following are not allowed:
+
+  - `A increased_by B% in 1h` (two metrics in one change operation)
+  - `(A + B) increased_by 10% in 1h` (change applies to a single metric only)
+</Accordion>
+
+<Accordion title="Ranges">
+  `between` Value in range: `A between 10 and 100`
+</Accordion>
+
+<Accordion title="Operator Precedence">
+  The formula parser respects mathematical precedence rules:
+
+  1. `^` (Exponentiation)
+  2. `*`, `/` (Multiplication, Division)
+  3. `+`, `-` (Addition, Subtraction)
+  4. `<`, `<=`, `>`, `>=`, `increased_by`, `decreased_by`, `net_increased_by`, `net_decreased_by`, `between` (Comparison and Trend)
+  5. `==`, `!=` (Equality)
+  6. `and` (Logical AND)
+  7. `or` (Logical OR)
+</Accordion>
+
+<Accordion title="Parentheses">
+  ```
+  (A \+ B) \* C \> 100
+  (A \> 50 and B \< 100) or C == 0
+  ```
+</Accordion>
+
+# Real-World Examples
+
+## Token Supply Threshold
+
+Alert when an ERC-20 token's `totalSupply()` exceeds a threshold.
+
+```
+A > 1_000_000_000_000_000_000_000
+```
+
+## Wallet Balance Surge
+
+Alert when the wallet has \>10k tokens AND its balance increased by 50% in the last 30 minutes.
+
+```
+A > 10_000 and A increased_by 50% in 30m
+```
+
+A: `balanceOf(wallet)` for the token
+
+## Pool Reserve Imbalance
+
+Alert when either reserve is more than 20% larger than the other (checks both directions).
+
+```
+(A / B > 1.2) or (B / A > 1.2)
+```
+
+- A: `getReserves().reserve0`
+- B: `getReserves().reserve1`
+
+Alternative (range check):
+
+```
+(A / B < 0.80) or (A / B > 1.2)
+```
+
+This triggers when the ratio leaves a healthy band of 0.83–1.2.
+
+## Liquidity Floor
+
+Alert when pool liquidity drops below a floor.
+
+```
+A < 5_000_000
+```
+
+A: Sui pool object `liquidity` field
+
+## Reserve Utilization
+
+Alert when utilization exceeds 90%.
+
+```
+A / B > 0.9
+```
+
+- A: Lending pool `totalBorrows()` (or equivalent borrowed amount)
+- B: Lending pool `totalSupply()` (or equivalent supplied amount)
+
+# Best Practices
+
+## Working with Time Periods
+
+When using time-based operators like `increased_by`, you need to specify a time period:
+
+### Time Format
+
+Write time as: `{number}{unit}`
+
+| Unit    | Example            |
+| ------- | ------------------ |
+| seconds | `30s` = 30 seconds |
+| minutes | `15m`= 15 minutes  |
+| hours   | `12h`= 12 hours    |
+
+### Types of Changes You Can Track
+
+**Absolute numbers:**
+
+Balance went up by exactly 1000 units.
+
+```
+balance increased_by 1000 in 1h
+```
+
+**Percentages:**
+
+Price went up by 25%.
+
+```
+price increased_by 25% in 30m
+```
+
+**Multipliers:**
+
+Volume doubled (2 times larger).
+
+```
+volume increased_by 2x in 2h
+```
+
+<Info>
+  **Note**
+
+  Time-based changes apply to a single metric only. Do not reference another metric as the change value.
+</Info>
+
+## Tips for Success
+
+<Card title="Start Simple">
+  Begin with basic conditions and add complexity gradually:
+
+  ```
+  A > 1000
+  ```
+
+  Then expand to:
+
+  ```
+  A > 1000 and B increased_by 10% in 1h
+  ```
+</Card>
+
+<Card title="Use Clear Logic">
+  Group related conditions with parentheses:
+
+  ```
+  (balance > 100000 and volume increased_by 50% in 1h) or emergency_flag == 1
+  ```
+</Card>
+
+## Common Issues & Solutions
+
+<Accordion title="❌  Unknown metric: X" iconType="regular">
+  **Problem**: You're referencing a metric that doesn't exist.
+
+  **Fix**: Make sure all letters (A, B, C, etc.) in your formula have corresponding metrics defined in Step 1.
+</Accordion>
+
+<Accordion title="❌ Expression must contain at least one metric">
+  **Problem**: Your formula only has numbers, like `5 + 3`.
+
+  **Fix**: Include at least one metric variable: `A + 5 > 10`.
+</Accordion>
+
+<Accordion title="❌ Invalid timeframe format">
+  **Problem**: Wrong time format in trend operators.
+
+  **Fix**: Use the correct format: `15m`, `2h`, `30s` (not `15 minutes` or `2 hrs`).
+</Accordion>
+
+<Accordion title="⚠️ Formula not triggering alerts">
+  **Check these:**
+
+  1. Are your metrics collecting data? (Check Step 2: Metric Details)
+  2. Are your threshold values realistic for the data range?
+  3. Are you using the right time periods for trend analysis?
+</Accordion>
+
+<Accordion title="⚠️ Too many false alerts">
+  **Try these:**
+
+  1. Increase threshold values to reduce sensitivity
+  2. Add additional conditions with `and` to make triggers more specific
+  3. Use longer timeframes for trend analysis to reduce noise
 </Accordion>
