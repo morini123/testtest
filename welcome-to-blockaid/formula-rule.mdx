@@ -55,72 +55,41 @@ To create a Formula Detection Rule, follow these steps:
     **Note**\
     The contract (for Contract Call type) or Sui object (for Object Read type) must already exist in your Inventory as an asset before you can configure and save the metric.
   </Warning>
+  **To define metrics:**
+
+  1. Click the **Choose Metric** dropdown and select an existing metric, or click **\+ Add new metric** to create a new one.
+
+     <Tip>
+       **Tip**
+
+       If you're selecting an existing metric, skip to the Create Formula section.
+     </Tip>
+     2. Under the **Configure Metric**, fill in the following:
+        1. **Metric Name** - Enter a descriptive name that will help you easily identify the metric in the metrics list.
+        2. **Metric Type** - Select the type of metric (Contract Call or Read Object).
+     3. Continue based on the selected type:
+
+        <Tabs>
+          <Tab title="Contract Call (EVM)">
+            Fill-in the fields as follows:
+            1. **Target** - Select the contract to read from. This list is based on your Inventory.
+            2. **Function** - The function to call from the contract, e.g. `balanceOf(address)` or `totalSupply()`. This list will show only functions that return numeric values.
+            3. **Input Parameters** - The arguments to pass to the function. Some functions don't require input parameters.
+            4. **Output Field** - Which returned value to use. Only numeric outputs are selectable.
+
+               <Warning>
+                 **Note**
+
+                 If the Functions list is empty, the contract you've selected doesn't include functions that return numeric values. To continue, select a different contract.
+               </Warning>
+          </Tab>
+          <Tab title="Read Object (Sui)">
+            Fill-in the fields as follows:
+            1. **Target** - Select the Sui object to read from. This list is based on your Inventory.
+            2. **Field** - The numeric field to extract. Only numeric fields are selectable.
+          </Tab>
+        </Tabs>
+        4. Click **Test Metric** to validate the metric's configuration.
+        5. Once the test passed successfully, click **Save Metric**.
+        6. Check that your metrics are collecting data correctly and review their values.
 </Accordion>
-
-## Step 2: Define Metrics
-
-A metric is the data point you want to monitor as part of your rule. Once the metric meets a pre-determined condition (set up in the Formula section), the rule will trigger and an Incident will be created. For instance, track the volume of a specific token in your wallet and trigger the rule when the volume exceeds 20%.
-
-Metrics are saved and can be reused across multiple formula rules. Saved metrics can also be edited and adjusted to fit changing needs.
-
-There are two types of metrics:
-
-\* \*\*Contract Call (EVM)\*\* - Read a numeric value by calling a read-only smart contract function. Common for balances, supply, counters, configuration values.
-
-\* \*\*Read Object (Sui)\*\* - Read a numeric value from a Sui object. This is useful for reading counters and balances stored as Sui object fields.
-
-\> 🚧 Note
-
-\>
-
-\> The contract (for Contract Call type) or Sui object (for Object Read type) must already exist in your [Inventory](https://docs.blockaid.io/docs/inventory#/) as an asset before you can configure and save the metric.
-
-\*\*To define metrics:\*\*
-
-1. Click the \*\*Choose Metric\*\* dropdown and select an existing metric, or click \*\*\+ Add new metric\*\* to create a new one.
-
-   \> 👍 Tip
-
-   \>
-
-   \> If you're selecting an existing metric, skip to the Create Formula section.
-
-   \!
-2. Under the \*\*Configure Metric\*\*, fill in the following:
-   1. \*\*Metric Name\*\* - Enter a descriptive name that will help you easily identify the metric in the metrics list.
-   2. \*\*Metric Type\*\* - Select the type of metric (Contract Call or Read Object).
-3. Continue based on the selected type:
-
-\<Tabs\>
-
-\<Tab title="Contract Call (EVM)"\>
-
-Fill-in the fields as follows:
-
-1. \*\*Target\*\* - Select the contract to read from. This list is based on your Inventory.
-2. \*\*Function\*\* - The function to call from the contract, e.g. `balanceOf(address)` or `totalSupply()`. This list will show only functions that return numeric values.
-3. \*\*Input Parameters\*\* - The arguments to pass to the function. Some functions don't require input parameters.
-4. \*\*Output Field\*\* - Which returned value to use. Only numeric outputs are selectable.
-
-\*\*Note:\*\* If the Functions list is empty, the contract you've selected doesn't include functions that return numeric values. To continue, select a different contract.
-
-\</Tab\>
-
-\<Tab title="Read Object (Sui)"\>
-
-Fill-in the fields as follows:
-
-1. \*\*Target\*\* - Select the Sui object to read from. This list is based on your Inventory.
-2. \*\*Field\*\* - The numeric field to extract. Only numeric fields are selectable.
-
-\</Tab\>
-
-\</Tabs\>
-
-4. Click \*\*Test Metric\*\* to validate the metric's configuration.
-5. Once the test passed successfully, click \*\*Save Metric\*\*.
-
-   \<Image align="left" width="550px" src="https://files.readme.io/7377d5fb17dbb39de0fcdfda17070116be8a707027741ccfebf7d8f26b860791-configure_metric.gif" /\>
-
-   \<br /\>
-6. Check that your metrics are collecting data correctly and review their values.
