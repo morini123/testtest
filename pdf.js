@@ -1,11 +1,11 @@
-// Mintlify — Export to PDF (reads routes from /docs.json; full modal + SPA safe)
+// Mintlify — Export to PDF (uses /search.json → /docs.json → sidebar; full modal; SPA-safe)
 (function () {
-  // ========= tiny helpers =========
+  // ---------- helpers ----------
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const slug = (s='') => s.trim().toLowerCase().replace(/[^\w\-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-  const sameOrigin = (u) => { try { return new URL(u, location.origin).origin === location.origin; } catch { return false; } };
-  const toPath = (u) => { try { return new URL(u, location.origin).pathname; } catch { return null; } };
+  const toURL = (u) => { try { return new URL(u, location.origin); } catch { return null; } };
+  const toPath = (u) => (toURL(u) || {}).pathname || null;
 
   function findArticle(root = document) {
     return (
@@ -28,10 +28,10 @@
     });
   }
 
-  // ========= modal (full) =========
+  // ---------- modal ----------
   const STYLE_ID = 'pdfx-styles';
   const OVERLAY_ID = 'pdfx-overlay';
-  const FULL_STYLE = `
+  const CSS = `
     #${OVERLAY_ID}{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);z-index:999999;display:flex;align-items:center;justify-content:center}
     #${OVERLAY_ID}[hidden]{display:none}
     .pdfx-modal{background:#fff;border-radius:12px;width:min(980px,94vw);max-height:84vh;box-shadow:0 16px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
@@ -63,7 +63,7 @@
     .pdfx-article-path{opacity:.55;font-size:12px}
     @media print { .html2pdf__page-break{break-after:page} }
   `;
-  const FULL_OVERLAY_INNER = `
+  const MODAL = `
     <div class="pdfx-modal" role="dialog" aria-modal="true" aria-label="Export articles">
       <div class="pdfx-header">
         <h3 class="pdfx-title">Export to PDF</h3>
@@ -101,7 +101,7 @@
                 <option value="0.8">Small file</option>
               </select>
             </div>
-            <p class="pdfx-note">Pages come from <code>/docs.json</code>. You can also add the current page and visible section.</p>
+            <p class="pdfx-note">Pages are discovered from <code>/search.json</code> (fallback to <code>/docs.json</code>), plus the current page.</p>
           </div>
           <div class="pdfx-actions">
             <button class="pdfx-btn pdfx-cancel">Cancel</button>
@@ -111,112 +111,105 @@
       </div>
     </div>
   `;
+
   function ensureModal() {
     let style = document.getElementById(STYLE_ID);
     if (!style) { style = document.createElement('style'); style.id = STYLE_ID; document.head.appendChild(style); }
-    style.textContent = FULL_STYLE;
+    style.textContent = CSS;
     let overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) { overlay = document.createElement('div'); overlay.id = OVERLAY_ID; overlay.hidden = true; document.body.appendChild(overlay); }
-    overlay.innerHTML = FULL_OVERLAY_INNER;
+    overlay.innerHTML = MODAL;
   }
-  function openModal() {
-    ensureModal();
-    $('#'+OVERLAY_ID).hidden = false;
-    buildList(); // builds from manifest (with fallback)
-  }
+  function openModal() { ensureModal(); $('#'+OVERLAY_ID).hidden = false; buildList(); }
   function closeModal() { const ov = $('#'+OVERLAY_ID); if (ov) ov.hidden = true; }
 
-  // ========= routes from /docs.json =========
+  // ---------- build list: /search.json → /docs.json → sidebar → +current ----------
   let ROUTES_CACHE = null;
 
-  async function loadRoutesFromDocsJson() {
-    if (ROUTES_CACHE) return ROUTES_CACHE;
+  async function routesFromSearchJson() {
+    try {
+      const r = await fetch('/search.json', { credentials: 'same-origin' });
+      if (!r.ok) return [];
+      const data = await r.json(); // Mintlify’s index: [{ url, title, section, content, ... }, ...]
+      const seen = new Set();
+      const items = [];
+      for (const row of data || []) {
+        const p = toPath(row.url);
+        if (!p || seen.has(p)) continue;
+        seen.add(p);
+        const title = (row.title || row.section || p).trim();
+        items.push({ title, path: p });
+      }
+      return items;
+    } catch { return []; }
+  }
 
-    // try /docs.json (primary), then /mint.json (older naming) as fallback
-    const candidates = ['/docs.json', '/mint.json'];
-    let json = null;
-    for (const p of candidates) {
-      try {
-        const res = await fetch(p, { credentials: 'same-origin' });
-        if (res.ok) { json = await res.json(); break; }
-      } catch {}
-    }
+  async function routesFromDocsJson() {
     const out = [];
     const seen = new Set();
-
     function push(title, href) {
-      if (!href || !sameOrigin(href)) return;
-      const path = toPath(href);
-      if (!path || seen.has(path)) return;
-      seen.add(path);
-      out.push({ title: (title || path).trim(), path });
+      const p = toPath(href);
+      if (!p || seen.has(p)) return;
+      seen.add(p);
+      out.push({ title: (title || p).trim(), path: p });
     }
-
     function walk(node, inheritedTitle) {
       if (!node || typeof node !== 'object') return;
-
-      // common shapes:
-      // { title, href } | { name, link } | { pages: [...] } | { group, pages } | { sections: [...] }
       if (typeof node.href === 'string') push(node.title || node.name || inheritedTitle, node.href);
       if (typeof node.link === 'string') push(node.title || node.name || inheritedTitle, node.link);
       if (typeof node.path === 'string') push(node.title || node.name || inheritedTitle, node.path);
-
-      // Recurse arrays on common keys or any array value
-      const arrayishKeys = ['pages','items','children','sections','navigation','links','routes'];
-      for (const key of Object.keys(node)) {
-        const val = node[key];
-        if (Array.isArray(val)) {
-          val.forEach(child => walk(child, node.title || node.name || inheritedTitle));
-        } else if (arrayishKeys.includes(key) && typeof val === 'object') {
-          // just in case some themes put objects under these keys
-          walk(val, node.title || node.name || inheritedTitle);
-        }
+      for (const [k,v] of Object.entries(node)) {
+        if (Array.isArray(v)) v.forEach(child => walk(child, node.title || node.name || inheritedTitle));
       }
     }
-
-    if (json) walk(json, '');
-    ROUTES_CACHE = out;
-    return out;
+    try {
+      for (const cand of ['/docs.json', '/mint.json']) {
+        const r = await fetch(cand, { credentials: 'same-origin' });
+        if (r.ok) { walk(await r.json(), ''); break; }
+      }
+      return out;
+    } catch { return out; }
   }
 
-  // ========= fallback reader (visible sidebar) =========
-  function readSidebarFallback() {
-    const containers = Array.from(document.querySelectorAll(
-      'aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'
-    ));
+  function routesFromSidebar() {
+    const containers = Array.from(document.querySelectorAll('aside, aside nav, [data-radix-scroll-area-viewport] aside, [data-radix-scroll-area-viewport] nav'));
     const anchors = [];
     containers.forEach(c => anchors.push(...c.querySelectorAll('a[href]')));
     const seen = new Set();
     const items = [];
     anchors.forEach(a => {
-      const raw = a.getAttribute('href') || '';
-      if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('javascript:')) return;
-      if (!sameOrigin(raw)) return;
-      const path = toPath(raw); if (!path || seen.has(path)) return;
-      seen.add(path);
-      const title = (a.textContent || '').trim() || path.split('/').filter(Boolean).pop() || path;
-      items.push({ title, path });
+      const p = toPath(a.getAttribute('href'));
+      if (!p || seen.has(p)) return;
+      seen.add(p);
+      const title = (a.textContent || '').trim() || p.split('/').filter(Boolean).pop() || p;
+      items.push({ title, path: p });
     });
     return items;
   }
 
-  // ========= build list (manifest + fallback + current page) =========
-  async function buildList() {
-    const list = $('.pdfx-list'); if (!list) return;
-
-    let items = await loadRoutesFromDocsJson();
-    if (!items || !items.length) items = readSidebarFallback();
+  async function getRoutes() {
+    if (ROUTES_CACHE) return ROUTES_CACHE;
+    let items = await routesFromSearchJson();
+    if (!items.length) items = await routesFromDocsJson();
+    if (!items.length) items = routesFromSidebar();
 
     // Always include current page
-    const herePath = location.pathname;
-    const hereTitle = ($('h1')?.textContent || document.title || herePath).trim();
-    if (!items.some(i => i.path === herePath)) items.unshift({ title: hereTitle, path: herePath });
+    const here = location.pathname;
+    const hereTitle = ($('h1')?.textContent || document.title || here).trim();
+    if (!items.some(i => i.path === here)) items.unshift({ title: hereTitle, path: here });
 
-    // de-dupe and sort by path (optional)
+    // de-dupe + sort
     const seen = new Set();
     items = items.filter(i => { if (seen.has(i.path)) return false; seen.add(i.path); return true; })
                  .sort((a,b) => a.path.localeCompare(b.path));
 
+    ROUTES_CACHE = items;
+    return items;
+  }
+
+  async function buildList() {
+    const list = $('.pdfx-list'); if (!list) return;
+    const items = await getRoutes();
     window.__PDFX_ITEMS__ = items;
 
     list.innerHTML = items.map(it => `
@@ -226,7 +219,6 @@
         <span class="pdfx-path">${it.path}</span>
       </label>
     `).join('');
-
     const count = $('.pdfx-count'); if (count) count.textContent = '0 article(s) selected';
   }
 
@@ -235,7 +227,7 @@
     const el = $('.pdfx-count'); if (el) el.textContent = `${n} article(s) selected`;
   }
 
-  // ========= fetch → compile → export =========
+  // ---------- export ----------
   async function fetchArticle(pathname) {
     const res = await fetch(pathname, { credentials: 'same-origin' });
     const html = await res.text();
@@ -263,7 +255,7 @@
       for (let i = 0; i < selected.length; i++) {
         const { title, path } = selected[i];
         const section = document.createElement('section'); section.className = 'pdfx-article';
-        const header = document.createElement('header'); header.className = 'pdfx-article-header';
+        const header  = document.createElement('header'); header.className = 'pdfx-article-header';
         header.innerHTML = `<h1 class="pdfx-article-title">${title}</h1><div class="pdfx-article-path">${location.origin}${path}</div>`;
         section.appendChild(header);
         section.appendChild(await fetchArticle(path));
@@ -289,7 +281,7 @@
     }
   }
 
-  // ========= triggers + SPA safety =========
+  // ---------- triggers + SPA handling ----------
   function checkTriggerFromUrl() {
     try {
       const u = new URL(location.href);
@@ -317,7 +309,8 @@
 
   function bindContextualClicks(root = document) {
     root.querySelectorAll('a[href="#export-pdf"], a[href*="?export=pdf"]').forEach(a => {
-      if (a.__pdfxBound) return; a.__pdfxBound = true;
+      if (a.__pdfxBound) return;
+      a.__pdfxBound = true;
       a.addEventListener('click', (e) => {
         e.preventDefault();
         if (location.hash !== '#export-pdf') history.pushState(null, '', location.pathname + location.search + '#export-pdf');
@@ -333,15 +326,17 @@
   });
   mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
 
-  // ========= delegated modal events =========
+  // modal events (delegated)
   document.addEventListener('click', async (e) => {
     if (e.target.matches('#'+OVERLAY_ID)) closeModal();
     if (e.target.matches('.pdfx-close, .pdfx-cancel')) closeModal();
 
     if (e.target.matches('[data-select-current]')) {
       const here = location.pathname;
-      // if current page isn't in the list yet, add it quickly
-      if (!__PDFX_ITEMS__ || !__PDFX_ITEMS__.some(i => i.path === here)) {
+      // Ensure current page is in the list and selected
+      const items = window.__PDFX_ITEMS__ || [];
+      const inList = items.some(i => i.path === here);
+      if (!inList) {
         const hereTitle = ($('h1')?.textContent || document.title || here).trim();
         const row = document.createElement('label');
         row.className = 'pdfx-row';
@@ -350,17 +345,24 @@
           <span class="pdfx-title-txt">${hereTitle}</span>
           <span class="pdfx-path">${here}</span>`;
         $('.pdfx-list')?.prepend(row);
-        window.__PDFX_ITEMS__ = [{ title: hereTitle, path: here }, ...(window.__PDFX_ITEMS__||[])];
+        items.unshift({ title: hereTitle, path: here });
+        window.__PDFX_ITEMS__ = items;
       }
       $$('.pdfx-item').forEach(cb => cb.checked = (cb.dataset.path === here));
       updateCount();
     }
+
     if (e.target.matches('[data-select-visible]')) {
       $$('.pdfx-row').forEach(row => { if (!row.hidden) row.querySelector('.pdfx-item').checked = true; });
       updateCount();
     }
-    if (e.target.matches('.pdfx-export')) { e.preventDefault(); await doExport(); }
+
+    if (e.target.matches('.pdfx-export')) {
+      e.preventDefault();
+      await doExport();
+    }
   });
+
   document.addEventListener('input', (e) => {
     if (e.target.matches('.pdfx-search')) {
       const q = e.target.value.trim().toLowerCase();
@@ -378,7 +380,7 @@
     if (e.target.matches('.pdfx-item')) updateCount();
   });
 
-  // ========= boot =========
+  // boot
   function ready(fn){
     (document.readyState === 'complete' || document.readyState === 'interactive')
       ? fn()
