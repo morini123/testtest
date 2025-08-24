@@ -1,0 +1,111 @@
+/**
+ * Mintlify: Add "Download PDF" button + generate a PDF of the current article
+ * Dependencies: html2pdf.js (loaded below)
+ */
+(function () {
+  // Load html2pdf.js once
+  function loadHtml2Pdf() {
+    return new Promise((resolve, reject) => {
+      if (window.html2pdf) return resolve();
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js';
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load html2pdf'));
+      document.head.appendChild(s);
+    });
+  }
+
+  // Heuristics to find the page content container in Mintlify
+  function getContentEl() {
+    // Try common Mintlify structures (adjust as needed for your theme)
+    return (
+      document.querySelector('main article') ||
+      document.querySelector('main [data-content]') ||
+      document.querySelector('main') ||
+      document.body
+    );
+  }
+
+  // Build file name from page title / path
+  function makeFileName() {
+    const title = (document.querySelector('h1')?.textContent || document.title || 'page')
+      .trim()
+      .replace(/[^\w\-]+/g, '_')
+      .replace(/_+/g, '_');
+    return `${title}.pdf`;
+  }
+
+  async function exportPdf() {
+    await loadHtml2Pdf();
+    const el = getContentEl();
+    if (!el) return alert('Sorry—could not find the page content to export.');
+    const filename = makeFileName();
+
+    // Tweak margins & page size as you prefer
+    const opt = {
+      margin:       [10, 10, 10, 10], // top, left, bottom, right (mm when using jsPDF units below)
+      filename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['css', 'legacy'] } // honors .html2pdf__page-break
+    };
+
+    // Clone to avoid sticky nav/interactive elements affecting layout
+    const clone = el.cloneNode(true);
+    // Optional: remove interactive UI bits (copy buttons, code action bars, etc.)
+    clone.querySelectorAll('button, [role="button"], .no-print').forEach(n => n.remove());
+
+    window.html2pdf().set(opt).from(clone).save();
+  }
+
+  // Insert a button in the navbar; fallback to a floating button if navbar not found
+  function insertButton() {
+    // Try to place in right side of top navbar
+    const navRight =
+      document.querySelector('header nav') ||
+      document.querySelector('header [class*="navbar"]') ||
+      document.querySelector('header');
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Download PDF';
+    btn.className = 'download-pdf-button'; // styled in Custom CSS below
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      exportPdf();
+    });
+
+    if (navRight) {
+      // Insert at the end
+      navRight.appendChild(btn);
+    } else {
+      // Floating fallback
+      const floatBtn = btn.cloneNode(true);
+      floatBtn.classList.add('download-pdf-float');
+      document.body.appendChild(floatBtn);
+    }
+  }
+
+  // Run on hydration + also on route changes (Mintlify is SPA-like)
+  function ready(fn) {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      fn();
+    } else {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    }
+  }
+
+  ready(() => {
+    insertButton();
+
+    // Re-insert if Mintlify swaps content on client-side navigation
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector('.download-pdf-button, .download-pdf-float')) {
+        insertButton();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+})();
