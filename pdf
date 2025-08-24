@@ -1,39 +1,67 @@
-/* Mintlify: Contextual-menu "Export to PDF" (multi-article) */
+/**
+ * Mintlify: Contextual Menu → "Export to PDF"
+ * - Add in docs.json: contextual.options -> { "title": "Export to PDF", "icon": "download", "description": "Download one or many articles as a PDF", "href": "#export-pdf" }
+ * - Paste this script in Custom JavaScript (site-wide)
+ */
 (function () {
-  // --- 0) tiny helpers ---
+  if (window.__PDFX_LOADED__) return; // guard against double init
+  window.__PDFX_LOADED__ = true;
+
+  // -------------------------
+  // Helpers
+  // -------------------------
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const slug = (s='') => s.trim().toLowerCase().replace(/[^\w\-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g,'');
 
-  // Load html2pdf once
+  function findArticle(root = document) {
+    return root.querySelector('main article, main [data-content], main .prose, main') || root.body || root;
+  }
+
   function loadHtml2Pdf() {
     return new Promise((resolve, reject) => {
       if (window.html2pdf) return resolve();
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
       s.async = true;
-      s.onload = () => resolve();
+      s.onload = resolve;
       s.onerror = () => reject(new Error('Failed to load html2pdf'));
       document.head.appendChild(s);
     });
   }
 
-  // Heuristic: get main article container on a page
-  function findArticle(root = document) {
-    return root.querySelector('main article, main [data-content], main') || root.body || root;
-  }
-
-  // Normalize file name
-  function slug(s) {
-    return (s || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[^\w\-]+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  // --- 1) Modal UI ---
-  const modalHTML = `
+  // -------------------------
+  // Modal UI
+  // -------------------------
+  const MODAL_HTML = `
+  <style id="pdfx-styles">
+    .pdfx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(1.2) blur(2px);z-index:9999;display:block}
+    .pdfx-overlay[hidden]{display:none}
+    .pdfx-modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(920px,92vw);max-height:80vh;background:#fff;border-radius:12px;box-shadow:0 16px 60px rgba(0,0,0,.25);overflow:hidden}
+    .pdfx-close{position:absolute;right:10px;top:10px;border:0;background:transparent;font-size:18px;cursor:pointer}
+    .pdfx-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:0;border-top:1px solid rgba(0,0,0,.06)}
+    .pdfx-left{padding:14px;border-right:1px solid rgba(0,0,0,.06);display:flex;flex-direction:column;min-height:380px}
+    .pdfx-right{padding:14px;display:flex;flex-direction:column;justify-content:space-between}
+    .pdfx-search-wrap{padding:4px 4px 10px 4px}
+    .pdfx-search{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(0,0,0,.12)}
+    .pdfx-list{overflow:auto;border:1px solid rgba(0,0,0,.06);border-radius:8px;padding:8px;background:#fafafa;min-height:260px}
+    .pdfx-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px}
+    .pdfx-row:hover{background:#fff}
+    .pdfx-title{font-weight:500}
+    .pdfx-path{opacity:.6;font-size:12px}
+    .pdfx-footer-left{display:flex;justify-content:space-between;align-items:center;padding-top:8px;font-size:12px}
+    .pdfx-check{display:flex;gap:6px;align-items:center}
+    .pdfx-opts{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:4px 0 12px}
+    .pdfx-label{font-size:12px;opacity:.7}
+    .pdfx-actions{display:flex;justify-content:flex-end;gap:8px}
+    .pdfx-actions .pdfx-cancel,.pdfx-actions .pdfx-export{padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.12);cursor:pointer;background:#fff}
+    .pdfx-actions .pdfx-export{background:#e84e2c;color:#fff;border-color:#e84e2c}
+    .pdfx-preview-hint{opacity:.65;font-size:12px;margin-top:6px}
+    .pdfx-article-header{border-bottom:1px solid rgba(0,0,0,.08);padding-bottom:10px;margin-bottom:12px}
+    .pdfx-article-title{margin:0;font-size:20px}
+    .pdfx-article-path{opacity:.55;font-size:12px}
+    @media print { .html2pdf__page-break{break-after:page} }
+  </style>
   <div id="pdfx-overlay" class="pdfx-overlay" hidden>
     <div class="pdfx-modal" role="dialog" aria-modal="true" aria-label="Export articles">
       <button class="pdfx-close" aria-label="Close">✕</button>
@@ -50,20 +78,21 @@
         </aside>
         <section class="pdfx-right">
           <div class="pdfx-opts">
-            <label class="pdfx-label">PDF Template</label>
-            <select class="pdfx-template">
-              <option value="blockaid">Blockaid</option>
-              <option value="clean">Clean (no cover)</option>
-            </select>
             <label class="pdfx-label">Paper</label>
             <select class="pdfx-paper">
-              <option value="a4|portrait">A4 • Portrait</option>
+              <option value="a4|portrait" selected>A4 • Portrait</option>
               <option value="a4|landscape">A4 • Landscape</option>
               <option value="letter|portrait">US Letter • Portrait</option>
               <option value="letter|landscape">US Letter • Landscape</option>
             </select>
+            <label class="pdfx-label">Quality</label>
+            <select class="pdfx-quality">
+              <option value="0.98" selected>High</option>
+              <option value="0.9">Medium</option>
+              <option value="0.8">Small file</option>
+            </select>
           </div>
-          <div class="pdfx-preview-hint">Pages will be compiled in the order you select them.</div>
+          <div class="pdfx-preview-hint">Pages are compiled in the order they appear in the sidebar.</div>
           <div class="pdfx-actions">
             <button class="pdfx-cancel">Cancel</button>
             <button class="pdfx-export">Export PDF</button>
@@ -74,37 +103,39 @@
   </div>`;
 
   function ensureModal() {
-    if (!$('#pdfx-overlay')) {
-      const wrap = document.createElement('div');
-      wrap.innerHTML = modalHTML;
-      document.body.appendChild(wrap.firstElementChild);
+    if (!document.getElementById('pdfx-overlay')) {
+      const frag = document.createElement('div');
+      frag.innerHTML = MODAL_HTML;
+      // styles + overlay
+      document.body.appendChild(frag.firstElementChild); // <style>
+      document.body.appendChild(frag.lastElementChild);  // <div id="pdfx-overlay">
     }
   }
-
   function openModal() {
     ensureModal();
-    $('#pdfx-overlay').hidden = false;
+    document.getElementById('pdfx-overlay').hidden = false;
     buildList();
   }
   function closeModal() {
-    const ov = $('#pdfx-overlay');
+    const ov = document.getElementById('pdfx-overlay');
     if (ov) ov.hidden = true;
   }
 
-  // --- 2) Build the selectable list from the left sidebar ---
+  // -------------------------
+  // Build selectable list (reads your left nav)
+  // -------------------------
   function readSidebar() {
-    // Grab current visible sidebar links (avoid external)
     const links = $$('aside a[href^="/"]:not([href="#"])');
-    // De-duplicate by pathname
     const seen = new Set();
     const items = [];
     links.forEach(a => {
+      const href = a.getAttribute('href');
       try {
-        const url = new URL(a.getAttribute('href'), location.origin);
-        if (seen.has(url.pathname)) return;
-        seen.add(url.pathname);
-        const title = a.textContent.trim() || url.pathname.split('/').filter(Boolean).pop();
-        items.push({ title, path: url.pathname });
+        const u = new URL(href, location.origin);
+        if (seen.has(u.pathname)) return;
+        seen.add(u.pathname);
+        const title = (a.textContent || '').trim() || u.pathname.split('/').filter(Boolean).pop();
+        items.push({ title, path: u.pathname });
       } catch {}
     });
     return items;
@@ -115,7 +146,7 @@
     cachedItems = readSidebar();
     const list = $('.pdfx-list');
     if (!list) return;
-    list.innerHTML = cachedItems.map((it, i) => `
+    list.innerHTML = cachedItems.map(it => `
       <label class="pdfx-row">
         <input type="checkbox" class="pdfx-item" data-path="${it.path}" data-title="${it.title.replace(/"/g,'&quot;')}" />
         <span class="pdfx-title">${it.title}</span>
@@ -124,24 +155,97 @@
     `).join('');
     updateCount();
   }
-
   function updateCount() {
     const n = $$('.pdfx-item:checked').length;
-    $('.pdfx-count').textContent = `${n} article(s) selected`;
+    const el = $('.pdfx-count'); if (el) el.textContent = `${n} article(s) selected`;
   }
 
-  // --- 3) Hook contextual-menu option ---
-  function onDocClick(e) {
-    const a = e.target.closest('a[href="#export-pdf"]');
-    if (a) {
-      e.preventDefault();
-      openModal();
+  // -------------------------
+  // Fetch + compile + export
+  // -------------------------
+  async function fetchArticle(pathname) {
+    const res = await fetch(pathname, { credentials: 'same-origin' });
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const main = findArticle(doc).cloneNode(true);
+
+    // Remove interactive bits that can ruin layout
+    main.querySelectorAll('button, [role="button"], .no-print, .copy, .clipboard, .code-action, [data-rehype-pretty-code-title]')
+        .forEach(n => n.remove());
+    return main;
+  }
+
+  async function doExport() {
+    await loadHtml2Pdf();
+    const selected = $$('.pdfx-item:checked').map(cb => ({
+      title: cb.dataset.title, path: cb.dataset.path
+    }));
+    if (!selected.length) return alert('Select at least one article.');
+
+    const [format, orientation] = ($('.pdfx-paper').value || 'a4|portrait').split('|');
+    const quality = parseFloat($('.pdfx-quality').value || '0.98');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'pdfx-wrap';
+
+    for (let i = 0; i < selected.length; i++) {
+      const { title, path } = selected[i];
+      const section = document.createElement('section');
+      section.className = 'pdfx-article';
+
+      const header = document.createElement('header');
+      header.className = 'pdfx-article-header';
+      header.innerHTML = `<h1 class="pdfx-article-title">${title}</h1>
+                          <div class="pdfx-article-path">${location.origin}${path}</div>`;
+      section.appendChild(header);
+
+      const body = await fetchArticle(path);
+      section.appendChild(body);
+      wrap.appendChild(section);
+
+      if (i < selected.length - 1) {
+        const br = document.createElement('div');
+        br.className = 'html2pdf__page-break';
+        wrap.appendChild(br);
+      }
     }
+
+    const fname = `blockaid-docs_${slug(selected[0].title)}${selected.length>1?`-and-${selected.length-1}-more`:''}.pdf`;
+
+    const options = {
+      margin: [10, 12, 14, 12],
+      filename: fname,
+      image: { type: 'jpeg', quality: quality },
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: format, orientation: orientation },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+
+    await window.html2pdf().set(options).from(wrap).save();
+    closeModal();
   }
 
-  // --- 4) Filtering + select all ---
-  function onModalEvents() {
-    const ov = $('#pdfx-overlay');
+  // -------------------------
+  // URL-trigger wiring (works with contextual menu)
+  // -------------------------
+  function openExportModalFromUrl() {
+    try {
+      const url = new URL(location.href);
+      const isHash = url.hash === '#export-pdf';
+      const isQuery = url.searchParams.get('export') === 'pdf';
+      if (isHash || isQuery) {
+        // Clean the URL so back/refresh doesn't reopen it
+        history.replaceState(null, '', location.pathname + (isQuery ? '' : url.search));
+        openModal();
+      }
+    } catch {}
+  }
+
+  // -------------------------
+  // Modal event handlers
+  // -------------------------
+  function attachModalEvents() {
+    const ov = document.getElementById('pdfx-overlay');
     if (!ov) return;
 
     ov.addEventListener('click', (e) => {
@@ -169,85 +273,36 @@
     ov.addEventListener('click', async (e) => {
       if (e.target.matches('.pdfx-export')) {
         e.preventDefault();
-        try {
-          await doExport();
-        } catch (err) {
-          alert('Export failed: ' + (err?.message || err));
-        }
+        try { await doExport(); }
+        catch (err) { alert('Export failed: ' + (err?.message || err)); }
       }
     });
   }
 
-  // --- 5) Fetch & compile pages, then export ---
-  async function fetchArticle(pathname) {
-    const res = await fetch(pathname, { credentials: 'same-origin' });
-    const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const main = findArticle(doc).cloneNode(true);
-
-    // Remove non-essential interactive UI
-    main.querySelectorAll('button, [role="button"], .no-print').forEach(n => n.remove());
-
-    return main;
+  // -------------------------
+  // Boot
+  // -------------------------
+  function ready(fn){
+    (document.readyState === 'complete' || document.readyState === 'interactive')
+      ? fn()
+      : document.addEventListener('DOMContentLoaded', fn, { once: true });
   }
 
-  async function doExport() {
-    await loadHtml2Pdf();
-
-    const selected = $$('.pdfx-item:checked').map(cb => ({
-      title: cb.dataset.title,
-      path: cb.dataset.path
-    }));
-    if (!selected.length) return alert('Select at least one article.');
-
-    // Template & paper
-    const [format, orientation] = ($('.pdfx-paper').value || 'a4|portrait').split('|');
-
-    // Build offscreen wrapper with page breaks between articles
-    const wrap = document.createElement('div');
-    wrap.className = 'pdfx-wrap';
-    for (let i = 0; i < selected.length; i++) {
-      const { title, path } = selected[i];
-      const section = document.createElement('section');
-      section.className = 'pdfx-article';
-
-      // Per-article cover/title
-      const h = document.createElement('header');
-      h.className = 'pdfx-article-header';
-      h.innerHTML = `<h1 class="pdfx-article-title">${title}</h1><div class="pdfx-article-path">${location.origin}${path}</div>`;
-      section.appendChild(h);
-
-      const main = await fetchArticle(path);
-      section.appendChild(main);
-
-      wrap.appendChild(section);
-      if (i < selected.length - 1) {
-        const br = document.createElement('div');
-        br.className = 'html2pdf__page-break';
-        wrap.appendChild(br);
-      }
-    }
-
-    const fname = `blockaid-docs_${slug(selected[0].title)}${selected.length>1?`-and-${selected.length-1}-more`:''}.pdf`;
-
-    const opt = {
-      margin: [10, 12, 14, 12],
-      filename: fname,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-      jsPDF: { unit: 'mm', format: format, orientation: orientation },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-
-    await window.html2pdf().set(opt).from(wrap).save();
-    closeModal();
-  }
-
-  // --- 6) Boot ---
-  function ready(fn){ (document.readyState==='complete'||document.readyState==='interactive') ? fn() : document.addEventListener('DOMContentLoaded', fn, {once:true}); }
   ready(() => {
     ensureModal();
-    document.addEventListener('click', onDocClick);
-    onModalEvents();
+    attachModalEvents();
+
+    // 1) Fire if page *loads* with trigger in URL
+    openExportModalFromUrl();
+
+    // 2) Fire when contextual item changes the hash/query
+    window.addEventListener('hashchange', openExportModalFromUrl);
+    window.addEventListener('popstate', openExportModalFromUrl);
+
+    // 3) On SPA navigations (Mintlify client routing), rebuild list
+    const navObserver = new MutationObserver(() => {
+      if ($('#pdfx-overlay') && !$('#pdfx-overlay').hidden) buildList();
+    });
+    navObserver.observe(document.body, { childList: true, subtree: true });
   });
 })();
